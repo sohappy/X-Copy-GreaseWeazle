@@ -1,0 +1,25 @@
+[package]
+name = "xcopy-modern"
+description = "X-COPY Modern: retro Amiga disk copier, formatter and writer for Greaseweazle"
+version = "1.1.0"
+build = "build.rs"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "xcopy-modern"
+path = "src/main.rs"
+
+[dependencies]
+hgf-core.workspace = true
+eframe.workspace = true
+rfd.workspace = true
+pollster.workspace = true
+serde.workspace = true
+font8x8.workspace = true
+
+[target.'cfg(windows)'.build-dependencies]
+winresource.workspace = true

@@ -1,0 +1,36 @@
+[workspace]
+members = ["crates/hgf-core", "crates/xcopy"]
+resolver = "2"
+
+# Shared by every crate: `version.workspace = true`, `license.workspace = true`…
+[workspace.package]
+edition = "2021"
+rust-version = "1.95"
+license = "GPL-3.0-or-later"
+authors = ["Retro Computing Club (RCC)"]
+repository = "https://github.com/sohappy/x-copy-rcc"
+
+# Every dependency is declared once, here; crates write `name.workspace = true`.
+# One place to bump a version, no divergence between crates.
+[workspace.dependencies]
+# internal
+hgf-core = { path = "crates/hgf-core" }
+# core
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+hex = "0.4"
+libc = "0.2"
+# GUI
+eframe = { version = "0.36.2", features = ["persistence"] }
+rfd = "0.15"
+pollster = "0.4"
+font8x8 = "0.3"
+# build / tests
+winresource = "0.1"
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true

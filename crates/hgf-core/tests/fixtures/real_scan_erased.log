@@ -1,0 +1,348 @@
+# Reconstructed from a real Greaseweazle V4.1 quick scan of a disk erased by gw: same per-track results and sector map.
+Reading c=0-79:h=0-1 revs=1.1
+Format amiga.amigados
+T0.0: AmigaDOS (10/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T0.0: Giving up: 1 sectors missing
+T0.1: AmigaDOS (8/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T0.1: Giving up: 3 sectors missing
+T1.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T1.0: Giving up: 11 sectors missing
+T1.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T1.1: Giving up: 11 sectors missing
+T2.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T2.0: Giving up: 11 sectors missing
+T2.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T2.1: Giving up: 11 sectors missing
+T3.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T3.0: Giving up: 11 sectors missing
+T3.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T3.1: Giving up: 11 sectors missing
+T4.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T4.0: Giving up: 11 sectors missing
+T4.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T4.1: Giving up: 11 sectors missing
+T5.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T5.0: Giving up: 11 sectors missing
+T5.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T5.1: Giving up: 11 sectors missing
+T6.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T6.0: Giving up: 11 sectors missing
+T6.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T6.1: Giving up: 11 sectors missing
+T7.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T7.0: Giving up: 11 sectors missing
+T7.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T7.1: Giving up: 11 sectors missing
+T8.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T8.0: Giving up: 11 sectors missing
+T8.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T8.1: Giving up: 11 sectors missing
+T9.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T9.0: Giving up: 11 sectors missing
+T9.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T9.1: Giving up: 11 sectors missing
+T10.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T10.0: Giving up: 11 sectors missing
+T10.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T10.1: Giving up: 11 sectors missing
+T11.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T11.0: Giving up: 11 sectors missing
+T11.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T11.1: Giving up: 11 sectors missing
+T12.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T12.0: Giving up: 11 sectors missing
+T12.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T12.1: Giving up: 11 sectors missing
+T13.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T13.0: Giving up: 11 sectors missing
+T13.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T13.1: Giving up: 11 sectors missing
+T14.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T14.0: Giving up: 11 sectors missing
+T14.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T14.1: Giving up: 11 sectors missing
+T15.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T15.0: Giving up: 11 sectors missing
+T15.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T15.1: Giving up: 11 sectors missing
+T16.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T16.0: Giving up: 11 sectors missing
+T16.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T16.1: Giving up: 11 sectors missing
+T17.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T17.0: Giving up: 11 sectors missing
+T17.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T17.1: Giving up: 11 sectors missing
+T18.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T18.0: Giving up: 11 sectors missing
+T18.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T18.1: Giving up: 11 sectors missing
+T19.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T19.0: Giving up: 11 sectors missing
+T19.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T19.1: Giving up: 11 sectors missing
+T20.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T20.0: Giving up: 11 sectors missing
+T20.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T20.1: Giving up: 11 sectors missing
+T21.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T21.0: Giving up: 11 sectors missing
+T21.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T21.1: Giving up: 11 sectors missing
+T22.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T22.0: Giving up: 11 sectors missing
+T22.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T22.1: Giving up: 11 sectors missing
+T23.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T23.0: Giving up: 11 sectors missing
+T23.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T23.1: Giving up: 11 sectors missing
+T24.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T24.0: Giving up: 11 sectors missing
+T24.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T24.1: Giving up: 11 sectors missing
+T25.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T25.0: Giving up: 11 sectors missing
+T25.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T25.1: Giving up: 11 sectors missing
+T26.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T26.0: Giving up: 11 sectors missing
+T26.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T26.1: Giving up: 11 sectors missing
+T27.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T27.0: Giving up: 11 sectors missing
+T27.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T27.1: Giving up: 11 sectors missing
+T28.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T28.0: Giving up: 11 sectors missing
+T28.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T28.1: Giving up: 11 sectors missing
+T29.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T29.0: Giving up: 11 sectors missing
+T29.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T29.1: Giving up: 11 sectors missing
+T30.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T30.0: Giving up: 11 sectors missing
+T30.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T30.1: Giving up: 11 sectors missing
+T31.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T31.0: Giving up: 11 sectors missing
+T31.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T31.1: Giving up: 11 sectors missing
+T32.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T32.0: Giving up: 11 sectors missing
+T32.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T32.1: Giving up: 11 sectors missing
+T33.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T33.0: Giving up: 11 sectors missing
+T33.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T33.1: Giving up: 11 sectors missing
+T34.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T34.0: Giving up: 11 sectors missing
+T34.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T34.1: Giving up: 11 sectors missing
+T35.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T35.0: Giving up: 11 sectors missing
+T35.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T35.1: Giving up: 11 sectors missing
+T36.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T36.0: Giving up: 11 sectors missing
+T36.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T36.1: Giving up: 11 sectors missing
+T37.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T37.0: Giving up: 11 sectors missing
+T37.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T37.1: Giving up: 11 sectors missing
+T38.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T38.0: Giving up: 11 sectors missing
+T38.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T38.1: Giving up: 11 sectors missing
+T39.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T39.0: Giving up: 11 sectors missing
+T39.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T39.1: Giving up: 11 sectors missing
+T40.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T40.0: Giving up: 11 sectors missing
+T40.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T40.1: Giving up: 11 sectors missing
+T41.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T41.0: Giving up: 11 sectors missing
+T41.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T41.1: Giving up: 11 sectors missing
+T42.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T42.0: Giving up: 11 sectors missing
+T42.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T42.1: Giving up: 11 sectors missing
+T43.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T43.0: Giving up: 11 sectors missing
+T43.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T43.1: Giving up: 11 sectors missing
+T44.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T44.0: Giving up: 11 sectors missing
+T44.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T44.1: Giving up: 11 sectors missing
+T45.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T45.0: Giving up: 11 sectors missing
+T45.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T45.1: Giving up: 11 sectors missing
+T46.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T46.0: Giving up: 11 sectors missing
+T46.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T46.1: Giving up: 11 sectors missing
+T47.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T47.0: Giving up: 11 sectors missing
+T47.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T47.1: Giving up: 11 sectors missing
+T48.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T48.0: Giving up: 11 sectors missing
+T48.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T48.1: Giving up: 11 sectors missing
+T49.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T49.0: Giving up: 11 sectors missing
+T49.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T49.1: Giving up: 11 sectors missing
+T50.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T50.0: Giving up: 11 sectors missing
+T50.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T50.1: Giving up: 11 sectors missing
+T51.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T51.0: Giving up: 11 sectors missing
+T51.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T51.1: Giving up: 11 sectors missing
+T52.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T52.0: Giving up: 11 sectors missing
+T52.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T52.1: Giving up: 11 sectors missing
+T53.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T53.0: Giving up: 11 sectors missing
+T53.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T53.1: Giving up: 11 sectors missing
+T54.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T54.0: Giving up: 11 sectors missing
+T54.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T54.1: Giving up: 11 sectors missing
+T55.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T55.0: Giving up: 11 sectors missing
+T55.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T55.1: Giving up: 11 sectors missing
+T56.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T56.0: Giving up: 11 sectors missing
+T56.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T56.1: Giving up: 11 sectors missing
+T57.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T57.0: Giving up: 11 sectors missing
+T57.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T57.1: Giving up: 11 sectors missing
+T58.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T58.0: Giving up: 11 sectors missing
+T58.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T58.1: Giving up: 11 sectors missing
+T59.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T59.0: Giving up: 11 sectors missing
+T59.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T59.1: Giving up: 11 sectors missing
+T60.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T60.0: Giving up: 11 sectors missing
+T60.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T60.1: Giving up: 11 sectors missing
+T61.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T61.0: Giving up: 11 sectors missing
+T61.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T61.1: Giving up: 11 sectors missing
+T62.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T62.0: Giving up: 11 sectors missing
+T62.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T62.1: Giving up: 11 sectors missing
+T63.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T63.0: Giving up: 11 sectors missing
+T63.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T63.1: Giving up: 11 sectors missing
+T64.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T64.0: Giving up: 11 sectors missing
+T64.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T64.1: Giving up: 11 sectors missing
+T65.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T65.0: Giving up: 11 sectors missing
+T65.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T65.1: Giving up: 11 sectors missing
+T66.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T66.0: Giving up: 11 sectors missing
+T66.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T66.1: Giving up: 11 sectors missing
+T67.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T67.0: Giving up: 11 sectors missing
+T67.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T67.1: Giving up: 11 sectors missing
+T68.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T68.0: Giving up: 11 sectors missing
+T68.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T68.1: Giving up: 11 sectors missing
+T69.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T69.0: Giving up: 11 sectors missing
+T69.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T69.1: Giving up: 11 sectors missing
+T70.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T70.0: Giving up: 11 sectors missing
+T70.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T70.1: Giving up: 11 sectors missing
+T71.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T71.0: Giving up: 11 sectors missing
+T71.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T71.1: Giving up: 11 sectors missing
+T72.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T72.0: Giving up: 11 sectors missing
+T72.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T72.1: Giving up: 11 sectors missing
+T73.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T73.0: Giving up: 11 sectors missing
+T73.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T73.1: Giving up: 11 sectors missing
+T74.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T74.0: Giving up: 11 sectors missing
+T74.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T74.1: Giving up: 11 sectors missing
+T75.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T75.0: Giving up: 11 sectors missing
+T75.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T75.1: Giving up: 11 sectors missing
+T76.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T76.0: Giving up: 11 sectors missing
+T76.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T76.1: Giving up: 11 sectors missing
+T77.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T77.0: Giving up: 11 sectors missing
+T77.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T77.1: Giving up: 11 sectors missing
+T78.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T78.0: Giving up: 11 sectors missing
+T78.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T78.1: Giving up: 11 sectors missing
+T79.0: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T79.0: Giving up: 11 sectors missing
+T79.1: AmigaDOS (0/11 sectors) from Raw Flux (44000 flux in 219.61ms)
+T79.1: Giving up: 11 sectors missing
+Cyl-> 0         1         2         3         4         5         6         7         
+H. S: 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+0. 0: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 1: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 2: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 3: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 4: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 5: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 6: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 7: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 8: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0. 9: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+0.10: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 0: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 1: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 2: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 3: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 4: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 5: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 6: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 7: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 8: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1. 9: .XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+1.10: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Found 18 sectors of 1760 (1%)

@@ -1,0 +1,28 @@
+*** TEST/PRE-RELEASE: 0.1.dev1+g26690f899
+*** Use these tools ONLY for test and development!!
+Format ibm.1440
+Converting c=0-2:h=0 -> c=0-2:h=0
+T0.0: IBM MFM (0/18 sectors) from Raw Flux (101082 flux in 400.00ms)
+T1.0: IBM MFM (0/18 sectors) from Raw Flux (101038 flux in 400.00ms)
+T2.0: IBM MFM (0/18 sectors) from Raw Flux (101038 flux in 400.00ms)
+Cyl-> 0  
+H. S: 012
+0. 0: XXX
+0. 1: XXX
+0. 2: XXX
+0. 3: XXX
+0. 4: XXX
+0. 5: XXX
+0. 6: XXX
+0. 7: XXX
+0. 8: XXX
+0. 9: XXX
+0.10: XXX
+0.11: XXX
+0.12: XXX
+0.13: XXX
+0.14: XXX
+0.15: XXX
+0.16: XXX
+0.17: XXX
+Found 0 sectors of 54 (0%)

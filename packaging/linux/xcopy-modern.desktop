@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=X-COPY Modern
+Comment=Copy, format and write Amiga floppy disks with a Greaseweazle
+Exec=xcopy-modern
+Icon=xcopy-modern
+Terminal=false
+Categories=Utility;System;
+StartupWMClass=xcopy-modern

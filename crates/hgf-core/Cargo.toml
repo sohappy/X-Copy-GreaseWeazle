@@ -1,0 +1,21 @@
+[package]
+name = "hgf-core"
+description = "Greaseweazle command model, process runner, output parser and floppy filesystems"
+version = "0.18.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+regex.workspace = true
+serde.workspace = true
+sha2.workspace = true
+hex.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
