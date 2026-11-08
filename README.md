@@ -49,7 +49,7 @@
 | `DOSCOPY` | AmigaDOS sector copy (ADF), with verified writes. |
 | `DOSCOPY+` | Like DOSCOPY, with the recovery profile (5 revolutions, 8 retries, 2 head re-seeks) for damaged disks. |
 | `BAMCOPY` | Reads cylinder 40 first (root block and bitmap), then **only the cylinders that hold files**. Much faster on a sparsely filled disk. The target disk is written in full, free tracks blank. If the bitmap is invalid, the whole disk is read. |
-| `NIBBLE` | Copy at the magnetic flux level (SCP): keeps copy protections. |
+| `NIBBLE` | Copy at the magnetic flux level (SCP): keeps copy protections. DEVICE then reads `DF>SCP` / `SCP>DF` (SCP or IPF files). |
 
 **DEVICE** sets the copy direction:
 
@@ -76,11 +76,11 @@
 | Button | Key | What it does |
 |---|---|---|
 | **START** | Enter | Starts the operation. You are asked to confirm before a disk is overwritten. |
-| **REPEAT** | F2 | Writes the last image again to new disks, without reading the source again. Handy for a series of copies. |
+| **REPEAT** | F2 | Writes the last copied image again to new disks, without reading the source again. Handy for a series of copies. In TOOLS, repeats the selected tool (another FORMAT, ERASE…). |
 | **STOP** | Esc | Stops cleanly; the drive is released. |
-| **DISK INFO** | | Greaseweazle model, firmware, port and USB link. |
+| **GW INFO** | | Greaseweazle model, firmware, port and USB link. |
 | **DIRECTORY** | | Volume, filesystem, boot block status and file list of the source disk or of an ADF. |
-| **CHECKDISK** | | Quick read of the whole disk and a health map of its tracks. |
+| **CHECKDISK** | | Quick AmigaDOS read of the whole disk (no retries) and a health map of its tracks. On game disks, tracks in a custom format or protected show as `N` (no AmigaDOS sector): that is not damage, copy those disks with NIBBLE. |
 | **DEFAULT** | | Resets the copy options. |
 
 ### Also
@@ -156,7 +156,10 @@ sudo usermod -aG dialout $USER   # USB access, then log out and back in
 ### If `gw` is not found
 
 Click **SETUP** (top right) and paste the full path of `gw` into *GW PROGRAM*, or click
-**DETECT**. You can also start the program with the `XCOPY_GW` variable:
+**DETECT**: it finds `gw` and asks it which Greaseweazle is connected and on which serial port
+(the same search runs at startup; the model shows in the top-right panel). The **PORT** line cycles
+through the serial ports found (empty = automatic). **CONFIRM BEFORE WRITING** turns off the
+"ALL DATA … WILL BE DESTROYED" question, as on the original X-COPY. You can also start the program with the `XCOPY_GW` variable:
 
 ```bash
 XCOPY_GW=$(which gw) ./xcopy-modern
@@ -167,7 +170,7 @@ XCOPY_GW=$(which gw) ./xcopy-modern
 1. Connect the Greaseweazle **and the drive's power supply** (4-pin connector: the Greaseweazle
    does not power the drive).
 2. Start X-COPY Modern. At the top right, the GREASEWEAZLE line should read **GW READY**.
-3. Click **DISK INFO**. The line changes to **DEVICE OK** and shows the model.
+3. Check the top-right panel: it should read **DEVICE OK** and the model (detected at startup). **GW INFO** shows the details.
 4. Check the wiring in **SETUP → BUS**:
    - **IBM PC** (default): PC drives on a twisted cable. DF0 = drive A (after the twist),
      DF1 = drive B.
@@ -196,7 +199,8 @@ FFS for 2.0 and later) and DENS, then **START**.
 |---|---|
 | Green `O` | Track read, or written and verified. |
 | Yellow `R` | Recovered after retries: worn surface. |
-| Red `1`…`9` | Unreadable track: number of missing sectors (`X` = more than 9). |
+| Red `1`…`9` | Damaged track: number of missing sectors (`X` = more than 9). |
+| Purple `N` | No AmigaDOS sector at all: custom (game) format, copy protection or unformatted track. |
 | Orange `?` | Retry in progress. |
 | Blue `U` | Empty (unformatted) track. |
 | Cyan `F` | Raw flux captured (NIBBLE). |

@@ -142,11 +142,14 @@ pub enum Flow {
 }
 
 impl Flow {
-    pub fn label(self) -> &'static str {
-        match self {
-            Flow::DiskToDisk => "DF>DF",
-            Flow::DiskToAdf => "DF>ADF",
-            Flow::AdfToDisk => "ADF>DF",
+    /// `nibble`: flux copy, whose images are SCP (or IPF) files rather than ADFs.
+    pub fn label(self, nibble: bool) -> &'static str {
+        match (self, nibble) {
+            (Flow::DiskToDisk, _) => "DF>DF",
+            (Flow::DiskToAdf, false) => "DF>ADF",
+            (Flow::AdfToDisk, false) => "ADF>DF",
+            (Flow::DiskToAdf, true) => "DF>SCP",
+            (Flow::AdfToDisk, true) => "SCP>DF",
         }
     }
     pub fn next(self) -> Self {
@@ -159,8 +162,8 @@ impl Flow {
     pub fn help(self) -> &'static str {
         match self {
             Flow::DiskToDisk => "DEVICE DF>DF: DISK TO DISK (SAME DRIVE = SWAP DISKS)",
-            Flow::DiskToAdf => "DEVICE DF>ADF: READ THE SOURCE DISK INTO AN IMAGE FILE",
-            Flow::AdfToDisk => "DEVICE ADF>DF: WRITE AN IMAGE FILE TO THE TARGET DISK(S)",
+            Flow::DiskToAdf => "DEVICE DF>ADF (DF>SCP IN NIBBLE): READ THE SOURCE DISK INTO AN IMAGE FILE",
+            Flow::AdfToDisk => "DEVICE ADF>DF (SCP>DF IN NIBBLE): WRITE AN IMAGE FILE TO THE TARGET DISK(S)",
         }
     }
 }
@@ -217,6 +220,8 @@ pub struct Settings {
     pub last_dir: Option<PathBuf>,
     /// Jingles at the end of an operation.
     pub sound: bool,
+    /// Ask "ALL DATA … WILL BE DESTROYED" before writing, formatting or erasing a disk.
+    pub confirm: bool,
 }
 
 pub const MAX_CYL: u16 = 83;
@@ -241,6 +246,7 @@ impl Default for Settings {
             ffs: false,
             last_dir: None,
             sound: true,
+            confirm: true,
         }
     }
 }
@@ -248,9 +254,16 @@ impl Default for Settings {
 impl Settings {
     /// Reset the copy options (DEFAULT button), keeping the hardware setup.
     pub fn defaults(&mut self) {
-        let keep = (self.cfg.clone(), self.bus, self.last_dir.clone(), self.volume.clone(), self.sound);
+        let keep = (
+            self.cfg.clone(),
+            self.bus,
+            self.last_dir.clone(),
+            self.volume.clone(),
+            self.sound,
+            self.confirm,
+        );
         *self = Settings::default();
-        (self.cfg, self.bus, self.last_dir, self.volume, self.sound) = keep;
+        (self.cfg, self.bus, self.last_dir, self.volume, self.sound, self.confirm) = keep;
     }
 
     pub fn sector_format(&self) -> &'static str {

@@ -119,6 +119,8 @@ pub struct Engine {
     rpm_mean: Option<f64>,
     pub device_ok: Option<bool>,
     pub model: String,
+    /// Serial port of the Greaseweazle (from `gw info`).
+    pub port: String,
     /// Number of operations that reached their final `Done` step.
     pub done_count: u64,
     /// Jingle to play (taken by the UI).
@@ -153,6 +155,7 @@ impl Engine {
             rpm_mean: None,
             device_ok: None,
             model: String::new(),
+            port: String::new(),
             done_count: 0,
             sound: None,
             probe_name: None,
@@ -367,6 +370,15 @@ impl Engine {
                             (format!("{} track(s) of the source could not be read:", bad.len()), Level::Warn),
                             (list.join(" ") + if bad.len() > 12 { " ..." } else { "" }, Level::Error),
                             (String::new(), Level::Info),
+                            (
+                                if non_dos_tracks(&self.map) > 0 {
+                                    "Tracks without any AmigaDOS sector: game format or protection, use NIBBLE."
+                                } else {
+                                    ""
+                                }
+                                .into(),
+                                Level::Warn,
+                            ),
                             ("Write the copy anyway (bad sectors are left blank)?".into(), Level::Info),
                         ],
                         yes_no: true,
@@ -388,24 +400,42 @@ impl Engine {
                     lines.push(("No Greaseweazle found.".into(), Level::Error));
                 }
                 self.ask =
-                    Some(Ask { title: "DISK INFO".into(), lines, yes_no: false, notice: true, choice: None });
+                    Some(Ask { title: "GW INFO".into(), lines, yes_no: false, notice: true, choice: None });
                 self.finish("OPERATION DONE.", Level::Good);
             }
             Task::CheckDone => {
                 let c = self.map.counts();
+                let non_dos = non_dos_tracks(&self.map);
+                let damaged = c.bad - non_dos;
                 let (msg, l) = if c.bad == 0 && c.empty == 0 {
                     (format!("CHECKDISK: {} TRACKS OK, NO ERRORS.", c.ok + c.recovered), Level::Good)
+                } else if damaged == 0 && non_dos > 0 {
+                    (
+                        format!(
+                            "CHECKDISK: {} OK, {non_dos} NON-DOS TRACKS (GAME FORMAT OR PROTECTION: COPY WITH NIBBLE).",
+                            c.ok + c.recovered
+                        ),
+                        Level::Warn,
+                    )
                 } else {
                     (
                         format!(
-                            "CHECKDISK: {} OK, {} BAD, {} EMPTY TRACKS.",
+                            "CHECKDISK: {} OK, {damaged} DAMAGED, {non_dos} NON-DOS, {} EMPTY TRACKS.",
                             c.ok + c.recovered,
-                            c.bad,
                             c.empty
                         ),
                         Level::Warn,
                     )
                 };
+                if non_dos > 0 {
+                    self.push_log(
+                        format!(
+                            "{non_dos} track(s) have no AmigaDOS sector at all (N): custom game format, copy \
+                             protection or unformatted track. Not damage: copy such disks with NIBBLE."
+                        ),
+                        Level::Warn,
+                    );
+                }
                 self.finish(&msg, l);
             }
             Task::RpmDone => {
@@ -508,6 +538,9 @@ impl Engine {
         }
         match &out {
             Output::KeyValue { key, value } if kind == ActionKind::Info => {
+                if key == "Port" {
+                    self.port = value.clone();
+                }
                 if key == "Model" {
                     self.model = value.clone();
                     self.device_ok = Some(true);
@@ -553,6 +586,21 @@ impl Engine {
         }
         self.fail(Some(r.kind), msg);
     }
+}
+
+/// Tracks read without a single AmigaDOS sector: a custom (game) format, a copy protection
+/// or an unformatted track, rather than damage.
+pub fn non_dos_tracks(map: &DiskMap) -> usize {
+    let mut n = 0;
+    for &c in &map.geometry.cyls {
+        for &h in &map.geometry.heads {
+            let t = map.get(c, h);
+            if t.state == hgf_core::TrackState::Bad && matches!(t.sectors, Some((0, total)) if total > 0) {
+                n += 1;
+            }
+        }
+    }
+    n
 }
 
 /// Directory listing of an ADF, for the DIRECTORY requester.
@@ -770,6 +818,25 @@ Failed to verify Track 0.1";
         assert_eq!(e.status, "OPERATION STOPPED.");
         assert_eq!(gw.calls().len(), 1, "the write never starts");
         assert_eq!(e.sound, Some(Sound::Abort));
+    }
+
+    #[test]
+    fn checkdisk_tells_non_dos_tracks_from_damage() {
+        // T0.0 fine, T0.1 damaged (8/11), T1.x no AmigaDOS sector at all (game format)
+        let read = "Reading c=0-1:h=0-1 revs=3
+Format amiga.amigados
+T0.0: AmigaDOS (11/11 sectors) from Raw Flux (100000 flux in 600.00ms)
+T0.1: AmigaDOS (8/11 sectors) from Raw Flux (100000 flux in 600.00ms)
+T0.1: Giving up: 3 sectors missing
+T1.0: AmigaDOS (0/11 sectors) from Raw Flux (100000 flux in 600.00ms)
+T1.0: Giving up: 11 sectors missing
+T1.1: AmigaDOS (0/11 sectors) from Raw Flux (100000 flux in 600.00ms)
+T1.1: Giving up: 11 sectors missing";
+        let (mut e, _) = engine(vec![Script::new(read, 0)]);
+        e.start(vec![read_task(), Task::CheckDone], GwConfig::default());
+        run(&mut e);
+        assert_eq!(non_dos_tracks(&e.map), 2);
+        assert_eq!(e.status, "CHECKDISK: 1 OK, 1 DAMAGED, 2 NON-DOS, 0 EMPTY TRACKS.");
     }
 
     #[test]

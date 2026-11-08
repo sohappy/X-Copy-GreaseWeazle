@@ -49,7 +49,7 @@
 | `DOSCOPY` | Copie secteur AmigaDOS (ADF), avec écriture vérifiée. |
 | `DOSCOPY+` | Comme DOSCOPY, avec le profil récupération (5 tours, 8 relectures, 2 repositionnements de la tête) pour les disques abîmés. |
 | `BAMCOPY` | Lit d'abord le cylindre 40 (bloc racine et bitmap), puis **seulement les cylindres qui contiennent des fichiers**. Beaucoup plus rapide sur un disque peu rempli. Le disque cible est écrit en entier, les pistes libres vierges. Si le bitmap est invalide, il lit tout le disque. |
-| `NIBBLE` | Copie au niveau du flux magnétique (SCP) : garde les protections anti-copie. |
+| `NIBBLE` | Copie au niveau du flux magnétique (SCP) : garde les protections anti-copie. DEVICE affiche alors `DF>SCP` / `SCP>DF` (fichiers SCP ou IPF). |
 
 **DEVICE** choisit le sens de la copie :
 
@@ -76,11 +76,11 @@
 | Bouton | Touche | Effet |
 |---|---|---|
 | **START** | Entrée | Lance l'opération. Une confirmation est demandée avant d'écraser un disque. |
-| **REPEAT** | F2 | Réécrit la dernière image sur de nouvelles disquettes, sans relire la source. Pratique pour une série de copies. |
+| **REPEAT** | F2 | Réécrit la dernière image copiée sur de nouvelles disquettes, sans relire la source. Pratique pour une série de copies. Dans TOOLS, relance l'outil choisi (un autre FORMAT, ERASE…). |
 | **STOP** | Échap | Interrompt proprement ; le lecteur est libéré. |
-| **DISK INFO** | | Modèle, firmware, port et USB du Greaseweazle. |
+| **GW INFO** | | Modèle, firmware, port et USB du Greaseweazle. |
 | **DIRECTORY** | | Volume, système de fichiers, état du boot block et liste des fichiers du disque source ou d'un ADF. |
-| **CHECKDISK** | | Lecture rapide de toute la disquette et carte de santé des pistes. |
+| **CHECKDISK** | | Lecture AmigaDOS rapide de toute la disquette (sans relecture) et carte de santé des pistes. Sur les disquettes de jeux, les pistes au format maison ou protégées apparaissent en `N` (aucun secteur AmigaDOS) : ce n'est pas un défaut, copiez ces disquettes en NIBBLE. |
 | **DEFAULT** | | Remet les options de copie par défaut. |
 
 ### Et aussi
@@ -156,7 +156,10 @@ sudo usermod -aG dialout $USER   # accès USB, puis reconnectez-vous
 ### Si `gw` n'est pas trouvé
 
 Cliquez sur **SETUP** (en haut à droite) et collez le chemin complet de `gw` dans *GW PROGRAM*,
-ou cliquez sur **DETECT**. Vous pouvez aussi lancer le programme avec la variable `XCOPY_GW` :
+ou cliquez sur **DETECT** : il trouve `gw` et lui demande quel Greaseweazle est branché et sur quel
+port série (la même recherche a lieu au démarrage ; le modèle s'affiche en haut à droite). La ligne
+**PORT** fait défiler les ports série trouvés (vide = automatique). **CONFIRM BEFORE WRITING** coupe
+la question « ALL DATA … WILL BE DESTROYED », comme sur le X-COPY d'origine. Vous pouvez aussi lancer le programme avec la variable `XCOPY_GW` :
 
 ```bash
 XCOPY_GW=$(which gw) ./xcopy-modern
@@ -167,7 +170,7 @@ XCOPY_GW=$(which gw) ./xcopy-modern
 1. Branchez le Greaseweazle **et l'alimentation du lecteur** (connecteur 4 broches : le Greaseweazle
    n'alimente pas le lecteur).
 2. Lancez X-COPY Modern. En haut à droite, la ligne GREASEWEAZLE doit afficher **GW READY**.
-3. Cliquez sur **DISK INFO**. La ligne passe à **DEVICE OK** et affiche le modèle.
+3. Vérifiez le panneau en haut à droite : il doit afficher **DEVICE OK** et le modèle (détectés au démarrage). **GW INFO** donne le détail.
 4. Vérifiez le câblage dans **SETUP → BUS** :
    - **IBM PC** (par défaut) : lecteurs PC sur nappe torsadée. DF0 = lecteur A (après la torsade),
      DF1 = lecteur B.
@@ -196,7 +199,8 @@ FFS pour 2.0 et plus) et DENS, puis **START**.
 |---|---|
 | `O` vert | Piste lue, ou écrite et vérifiée. |
 | `R` jaune | Récupérée après relectures : surface fatiguée. |
-| `1`…`9` rouge | Piste illisible : nombre de secteurs manquants (`X` = plus de 9). |
+| `1`…`9` rouge | Piste abîmée : nombre de secteurs manquants (`X` = plus de 9). |
+| `N` violet | Aucun secteur AmigaDOS : format maison (jeu), protection anti-copie ou piste non formatée. |
 | `?` orange | Relecture en cours. |
 | `U` bleu | Piste vide (non formatée). |
 | `F` cyan | Flux brut capturé (NIBBLE). |

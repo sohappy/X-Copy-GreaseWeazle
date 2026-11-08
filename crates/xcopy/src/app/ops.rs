@@ -155,7 +155,7 @@ impl App {
         let geo = if format.is_empty() { TrackSet::dense(80, 2) } else { geo };
         let tracks = if format.is_empty() { Default::default() } else { tracks };
         let img = LastImage { path: input, format, tracks, geo };
-        let mut v = vec![Self::destroy_confirm(&targets)];
+        let mut v = self.confirm_first(Self::destroy_confirm(&targets));
         v.extend(self.write_tasks(&img, &targets, None, false));
         v.push(Task::Done { message: "OPERATION DONE. IMAGE WRITTEN.".into() });
         self.pending_image = Some((self.eng.done_count + 1, img));
@@ -179,6 +179,15 @@ impl App {
             ..Default::default()
         });
         self.gw(action, idx, format!("WRITING {}", Self::dname(idx)), geo)
+    }
+
+    /// The confirmation step, unless SETUP turned confirmations off.
+    pub(super) fn confirm_first(&self, confirm: Task) -> Vec<Task> {
+        if self.s.confirm {
+            vec![confirm]
+        } else {
+            Vec::new()
+        }
     }
 
     pub(super) fn destroy_confirm(targets: &[usize]) -> Task {
@@ -272,7 +281,7 @@ impl App {
                 } else {
                     (tracks, geo)
                 };
-                let mut v = vec![Self::destroy_confirm(&targets)];
+                let mut v = self.confirm_first(Self::destroy_confirm(&targets));
                 v.extend(self.read_tasks(&temp));
                 v.push(Task::CheckBad);
                 if !nibble {
@@ -353,7 +362,7 @@ impl App {
                     geo: TrackSet::dense(80, 2),
                 };
                 let quick = self.s.tool_mode == ToolMode::QFormat;
-                let mut v = vec![Self::destroy_confirm(&targets)];
+                let mut v = self.confirm_first(Self::destroy_confirm(&targets));
                 for t in &targets {
                     let mut task = self.write_task(
                         &img.path,
@@ -398,13 +407,13 @@ impl App {
                 }
                 self.temps.push(temp.clone());
                 let list: Vec<String> = targets.iter().map(|&t| Self::dname(t)).collect();
-                let mut v = vec![Task::Confirm {
+                let mut v = self.confirm_first(Task::Confirm {
                     title: "WARNING!".into(),
                     text: format!(
                         "TRACK 0 (BOOT BLOCK) OF {} WILL BE ERASED AND REWRITTEN. THE DISK WILL NO LONGER BOOT. CONTINUE?",
                         list.join(", ")
                     ),
-                }];
+                });
                 for &t in &targets {
                     let action = Action::Write(WriteOpts {
                         input: temp.clone(),
@@ -423,7 +432,7 @@ impl App {
             ToolMode::KickDisk => self.spawn_dialog(Pick::KickRom, None),
             ToolMode::Erase => {
                 let Some(targets) = self.targets_or_notice() else { return };
-                let mut v = vec![Self::destroy_confirm(&targets)];
+                let mut v = self.confirm_first(Self::destroy_confirm(&targets));
                 for &t in &targets {
                     let a = Action::Erase(EraseOpts { tracks: tracks.clone(), ..Default::default() });
                     v.extend(self.gw(a, t, format!("ERASING {}", Self::dname(t)), geo.clone()));
@@ -485,7 +494,16 @@ impl App {
             v.push(Task::Done { message: "OPERATION DONE. ONE MORE COPY.".into() });
             self.launch(v);
         } else {
+            let what = match self.s.section {
+                Section::Tools => format!("REPEAT: {} AGAIN.", self.s.tool_mode.label()),
+                Section::Copy if self.s.flow == Flow::DiskToAdf => "REPEAT: READ ANOTHER DISK.".to_string(),
+                Section::Copy => "REPEAT: NO COPY IN MEMORY YET, FULL COPY STARTED.".to_string(),
+            };
+            self.eng.push_log(what.clone(), Level::Info);
             self.start();
+            if !self.eng.busy() && self.picking.is_none() && self.modal.is_none() {
+                self.eng.set_status(what, Level::Warn);
+            }
         }
     }
 
@@ -600,14 +618,14 @@ impl App {
         self.temps.push(temp.clone());
         let list: Vec<String> = targets.iter().map(|&t| Self::dname(t)).collect();
         let warn = if rom.checksum_ok { "" } else { " WARNING: THE ROM CHECKSUM IS WRONG (DAMAGED IMAGE?)." };
-        let mut v = vec![Task::Confirm {
+        let mut v = self.confirm_first(Task::Confirm {
             title: "KICKSTART DISK".into(),
             text: format!(
                 "{what} WILL BE WRITTEN ON {} (CYLINDERS 0-{}): ITS CONTENT THERE IS LOST.{warn} CONTINUE?",
                 list.join(", "),
                 kickstart::KICK_CYLINDERS - 1
             ),
-        }];
+        });
         let tracks = hgf_core::gw::TrackOpts {
             custom: format!("c=0-{}:h=0-1", kickstart::KICK_CYLINDERS - 1),
             ..Default::default()

@@ -317,7 +317,7 @@ impl App {
                 260.0,
                 "flow",
                 "DEVICE",
-                self.s.flow.label(),
+                self.s.flow.label(self.s.copy_mode == CopyMode::Nibble),
                 true,
                 Act::Flow,
                 self.s.flow.help(),
@@ -352,7 +352,7 @@ impl App {
             ("START", pal::YELLOW, Act::Start, "START THE SELECTED OPERATION (ENTER)"),
             ("REPEAT", pal::YELLOW, Act::Repeat, "REPEAT: WRITE THE LAST IMAGE AGAIN TO NEW DISKS (F2)"),
             ("STOP", pal::YELLOW, Act::Stop, "STOP: INTERRUPT AND RELEASE THE DRIVE (ESC)"),
-            ("DISK INFO", pal::GREEN, Act::DiskInfo, "DISK INFO: GREASEWEAZLE MODEL, FIRMWARE, PORT"),
+            ("GW INFO", pal::GREEN, Act::DiskInfo, "GW INFO: GREASEWEAZLE MODEL, FIRMWARE, PORT, USB"),
             ("DIRECTORY", pal::GREEN, Act::Directory, "DIRECTORY: SHOW THE AMIGADOS FILES OF THE SOURCE"),
             ("CHECKDISK", pal::GREEN, Act::CheckDisk, "CHECKDISK: QUICK READ OF THE SOURCE, TRACK MAP"),
             ("DEFAULT", pal::RED, Act::Default, "DEFAULT: RESET ALL COPY OPTIONS"),
@@ -597,7 +597,7 @@ impl App {
         let shown = lines.len().min(visible);
         let lh = 8.0 * size + 6.0;
         let fields_h =
-            m.fields.len() as f32 * 64.0 + 8.0 + if m.kind == ModalKind::Setup { 72.0 } else { 0.0 };
+            m.fields.len() as f32 * 64.0 + 8.0 + if m.kind == ModalKind::Setup { 144.0 } else { 0.0 };
         let err_h = if m.error.is_some() { 28.0 } else { 0.0 };
         let hbox = 96.0 + shown as f32 * lh + fields_h + err_h + 70.0;
         let x = (gfx::W - wbox) / 2.0;
@@ -672,9 +672,50 @@ impl App {
                 acts.push(Act::SoundToggle);
             }
             cy += 36.0;
+            let h = hot("confirm", x + 32.0, cy, wbox - 64.0, 28.0);
+            g.knob(x + 40.0, cy + 12.0, h.hover);
+            g.text(
+                x + 56.0,
+                cy + 4.0,
+                2.0,
+                &format!("CONFIRM BEFORE WRITING: {}", if m.confirm { "ON" } else { "OFF" }),
+                Style::shadowed(if h.hover { pal::WHITE } else { pal::YELLOW }),
+            );
+            if h.click {
+                acts.push(Act::ConfirmToggle);
+            }
+            cy += 36.0;
+            let h = hot("ports", x + 32.0, cy, wbox - 64.0, 28.0);
+            g.knob(x + 40.0, cy + 12.0, h.hover);
+            let cur = m.fields[1].value.trim();
+            let gw = self.ports.iter().find(|p| p.name == cur).is_some_and(|p| p.greaseweazle);
+            let text = if cur.is_empty() {
+                format!("PORT: AUTO ({} FOUND, CLICK TO PICK)", self.ports.len())
+            } else {
+                format!("PORT: {}{}", cur, if gw { " (GREASEWEAZLE)" } else { "" })
+            };
+            let text: String = text.chars().take(46).collect();
+            g.text(
+                x + 56.0,
+                cy + 4.0,
+                2.0,
+                &text,
+                Style::shadowed(if h.hover { pal::WHITE } else { pal::YELLOW }),
+            );
+            if h.click {
+                acts.push(Act::PortNext);
+            }
+            cy += 36.0;
         }
         if let Some(e) = &m.error {
-            g.text(x + 32.0, cy + 2.0, 2.0, e, Style::shadowed(pal::RED));
+            let col = if e.starts_with("GW FOUND") {
+                pal::GREEN
+            } else if e.starts_with("SEARCHING") {
+                pal::YELLOW
+            } else {
+                pal::RED
+            };
+            g.text(x + 32.0, cy + 2.0, 2.0, e, Style::shadowed(col));
         }
         let n = m.buttons.len() as f32;
         let bw = 170.0;
@@ -744,6 +785,13 @@ fn cell_look(
             let c = if blink { pal::ORANGE } else { Color32::from_rgb(90, 50, 0) };
             (Color32::from_rgb(40, 24, 0), c, "?", pal::ORANGE)
         }
+        // No AmigaDOS sector at all: custom (game) format, protection or unformatted track.
+        TrackState::Bad if matches!(sectors, Some((0, t)) if t > 0) => (
+            Color32::from_rgb(40, 14, 60),
+            Color32::from_rgb(190, 110, 255),
+            "N",
+            Color32::from_rgb(220, 180, 255),
+        ),
         TrackState::Bad => {
             let missing = sectors.map(|(ok, tot)| tot.saturating_sub(ok)).unwrap_or(0);
             let g = if (1..=9).contains(&missing) { DIGITS[missing as usize] } else { "X" };

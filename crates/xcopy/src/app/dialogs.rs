@@ -95,15 +95,20 @@ impl App {
         let mut m = Modal::new(
             ModalKind::Setup,
             "SETUP",
-            vec![("Click BUS to change how the drives are wired.".into(), Level::Info)],
+            vec![(
+                "DETECT finds gw and the Greaseweazle port. Click the orange lines to change them.".into(),
+                Level::Info,
+            )],
             vec!["DETECT", "OK", "CANCEL"],
         );
+        self.ports = hgf_core::gw::ports::list();
         m.fields = vec![
             Field { label: "GW PROGRAM (HOST TOOLS)", value: self.s.cfg.program.clone(), max: 400 },
             Field { label: "SERIAL PORT (EMPTY = AUTO)", value: self.s.cfg.device.clone(), max: 120 },
         ];
         m.bus = self.s.bus;
         m.sound = self.s.sound;
+        m.confirm = self.s.confirm;
         self.modal = Some(m);
     }
 
@@ -160,6 +165,8 @@ impl App {
                     let p = m.fields[0].value.trim().to_string();
                     m.error = Some("SEARCHING...".into());
                     self.s.cfg.program = if p.is_empty() { "gw".into() } else { p };
+                    self.s.cfg.device = m.fields[1].value.trim().to_string();
+                    self.ports = hgf_core::gw::ports::list();
                     self.detect();
                 }
                 "OK" => {
@@ -169,6 +176,7 @@ impl App {
                     self.s.cfg.device = m.fields[1].value.trim().to_string();
                     self.s.bus = m.bus;
                     self.s.sound = m.sound;
+                    self.s.confirm = m.confirm;
                     for i in 0..4 {
                         if self.s.bus.drive(i).is_none() {
                             self.s.targets[i] = false;

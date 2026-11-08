@@ -14,7 +14,7 @@ use crate::ui::font::Font;
 use crate::ui::gfx::{self, pal, Canvas, Gfx};
 use eframe::egui::{Color32, Key, TextureHandle, Ui};
 use hgf_core::disk::naming::safe_file_stem;
-use hgf_core::gw::locate;
+use hgf_core::gw::{locate, runner};
 use hgf_core::TrackSet;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver};
@@ -51,6 +51,8 @@ enum Act {
     ModalScroll(i32),
     Bus,
     SoundToggle,
+    ConfirmToggle,
+    PortNext,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -79,6 +81,7 @@ struct Modal {
     error: Option<String>,
     bus: Bus,
     sound: bool,
+    confirm: bool,
 }
 
 impl Modal {
@@ -94,6 +97,7 @@ impl Modal {
             error: None,
             bus: Bus::Ibm,
             sound: true,
+            confirm: true,
         }
     }
 }
@@ -110,6 +114,14 @@ enum Pick {
     Dir,
     /// KICKDISK: the Kickstart ROM image to put on an A1000 Kickstart disk.
     KickRom,
+}
+
+/// Result of the background search for gw and the Greaseweazle.
+#[derive(Default)]
+struct Detected {
+    program: Option<String>,
+    model: Option<String>,
+    port: Option<String>,
 }
 
 /// Image kept after a copy, so REPEAT writes more copies without reading the source again.
@@ -132,7 +144,9 @@ pub struct App {
     /// File dialog open in the background (never blocks the window).
     picking: Option<(Pick, Receiver<Option<PathBuf>>)>,
     temps: Vec<PathBuf>,
-    detect_rx: Option<Receiver<Option<String>>>,
+    detect_rx: Option<Receiver<Detected>>,
+    /// Serial ports offered in SETUP (Greaseweazles first).
+    ports: Vec<hgf_core::gw::ports::Port>,
     gw_found: Option<bool>,
     help: Option<String>,
     status_seen: String,
@@ -197,6 +211,7 @@ impl App {
             picking: None,
             temps: Vec::new(),
             detect_rx: None,
+            ports: Vec::new(),
             gw_found: None,
             help: None,
             status_seen: String::new(),
@@ -209,11 +224,31 @@ impl App {
         app
     }
 
+    /// Find gw, then ask it which Greaseweazle is connected and on which port (background).
     fn detect(&mut self) {
         let (tx, rx) = mpsc::channel();
         let pref = self.s.cfg.program.clone();
+        let device = self.s.cfg.device.clone();
         std::thread::spawn(move || {
-            let _ = tx.send(locate::detect(&pref));
+            let program = locate::detect(&pref);
+            let mut d = Detected { program: program.clone(), ..Default::default() };
+            if let Some(p) = &program {
+                let mut args = vec!["info"];
+                if !device.trim().is_empty() {
+                    args.extend(["--device", device.trim()]);
+                }
+                if let Ok(out) = runner::capture(p, &args, std::time::Duration::from_secs(8)) {
+                    for line in out.lines() {
+                        let line = line.trim();
+                        if let Some(v) = line.strip_prefix("Port:") {
+                            d.port = Some(v.trim().to_string());
+                        } else if let Some(v) = line.strip_prefix("Model:") {
+                            d.model = Some(v.trim().to_string());
+                        }
+                    }
+                }
+            }
+            let _ = tx.send(d);
         });
         self.detect_rx = Some(rx);
         self.gw_found = None;
@@ -223,15 +258,32 @@ impl App {
         let Some(rx) = &self.detect_rx else { return };
         let Ok(found) = rx.try_recv() else { return };
         self.detect_rx = None;
-        match found {
+        match found.program {
             Some(p) => {
                 self.eng.push_log(format!("Greaseweazle host tools: {p}"), Level::Good);
                 self.s.cfg.program = p;
                 self.gw_found = Some(true);
+                let device = match (&found.model, &found.port) {
+                    (Some(model), Some(port)) => {
+                        self.eng.push_log(format!("{model} on {port}"), Level::Good);
+                        self.eng.model = model.clone();
+                        self.eng.port = port.clone();
+                        self.eng.device_ok = Some(true);
+                        format!("{} ON {port}", model.to_uppercase())
+                    }
+                    _ => {
+                        self.eng.push_log("No Greaseweazle answered (unplugged?).", Level::Warn);
+                        self.eng.device_ok = Some(false);
+                        "NO GREASEWEAZLE CONNECTED".into()
+                    }
+                };
                 if let Some(m) = &mut self.modal {
                     if m.kind == ModalKind::Setup {
                         m.fields[0].value = self.s.cfg.program.clone();
-                        m.error = Some("GW FOUND.".into());
+                        if let Some(port) = &found.port {
+                            m.fields[1].value = port.clone();
+                        }
+                        m.error = Some(format!("GW FOUND. {device}"));
                     }
                 }
             }
@@ -280,6 +332,21 @@ impl App {
                     } else {
                         m.scroll.saturating_add(d as usize)
                     };
+                }
+            }
+            Act::ConfirmToggle => {
+                if let Some(m) = &mut self.modal {
+                    m.confirm = !m.confirm;
+                }
+            }
+            Act::PortNext => {
+                // AUTO, then every serial port found (Greaseweazles first)
+                if let Some(m) = &mut self.modal {
+                    let names: Vec<String> = std::iter::once(String::new())
+                        .chain(self.ports.iter().map(|p| p.name.clone()))
+                        .collect();
+                    let cur = names.iter().position(|n| *n == m.fields[1].value.trim()).unwrap_or(0);
+                    m.fields[1].value = names[(cur + 1) % names.len()].clone();
                 }
             }
             Act::SoundToggle => {
