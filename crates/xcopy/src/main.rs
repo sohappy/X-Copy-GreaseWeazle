@@ -7,6 +7,7 @@
 
 mod app;
 mod engine;
+mod recover;
 mod settings;
 mod sound;
 mod ui;

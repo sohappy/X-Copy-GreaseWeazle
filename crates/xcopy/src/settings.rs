@@ -91,7 +91,7 @@ impl ToolMode {
             ToolMode::Erase => "ERASE: DC-ERASE THE TRACK RANGE (UNFORMATTED DISK)",
             ToolMode::Speed => "SPEEDCHK: MEASURE THE SOURCE DRIVE RPM",
             ToolMode::Clean => "CLEAN: RUN A HEAD-CLEANING DISK IN THE TARGET DRIVE",
-            ToolMode::Track0 => "TRACK0: ERASE + REWRITE TRACK 0 ONLY (BOOT BLOCK), 8 RETRIES",
+            ToolMode::Track0 => "TRACK0: HF ERASE + REWRITE TRACK 0 (BOOT BLOCK), 8 RETRIES",
             ToolMode::KickDisk => "KICKDISK: AMIGA 1000 KICKSTART DISK FROM A 256K ROM IMAGE",
         }
     }
@@ -222,6 +222,13 @@ pub struct Settings {
     pub sound: bool,
     /// Ask "ALL DATA … WILL BE DESTROYED" before writing, formatting or erasing a disk.
     pub confirm: bool,
+    /// Read again the bad tracks after a read (recovery profile, sector merge).
+    pub reread: bool,
+    /// Amiga write precompensation (140 ns from cylinder 40) on DD disks. Off by default, as
+    /// gw and other front-ends write (renamed so that the earlier "on" default is not kept).
+    pub write_precomp: bool,
+    /// Keep the raw flux (SCP) of every read pass, in a "Read passes" folder.
+    pub keep_flux: bool,
 }
 
 pub const MAX_CYL: u16 = 83;
@@ -247,6 +254,9 @@ impl Default for Settings {
             last_dir: None,
             sound: true,
             confirm: true,
+            reread: true,
+            write_precomp: false,
+            keep_flux: false,
         }
     }
 }
@@ -261,9 +271,18 @@ impl Settings {
             self.volume.clone(),
             self.sound,
             self.confirm,
+            (self.reread, self.write_precomp, self.keep_flux),
         );
         *self = Settings::default();
-        (self.cfg, self.bus, self.last_dir, self.volume, self.sound, self.confirm) = keep;
+        (
+            self.cfg,
+            self.bus,
+            self.last_dir,
+            self.volume,
+            self.sound,
+            self.confirm,
+            (self.reread, self.write_precomp, self.keep_flux),
+        ) = keep;
     }
 
     pub fn sector_format(&self) -> &'static str {
@@ -288,6 +307,16 @@ impl Settings {
             t.custom = format!("c={}-{}:h={h}", self.start, self.end);
         }
         (t, geo)
+    }
+
+    /// NIBBLE track selection: the whole range (0-79, both sides) becomes cylinders 0-83, where
+    /// some copy protections hide data. Other ranges are taken as they are.
+    pub fn nibble_tracks(&self) -> (TrackOpts, TrackSet) {
+        if !self.full_range() {
+            return self.tracks();
+        }
+        let t = TrackOpts { custom: format!("c=0-{MAX_CYL}:h=0-1"), ..Default::default() };
+        (t, TrackSet::dense(MAX_CYL + 1, 2))
     }
 
     pub fn start_head(&self) -> u8 {
@@ -326,6 +355,17 @@ mod tests {
         assert_eq!(t.spec().as_deref(), Some("c=10-20:h=1"));
         assert_eq!(g.len(), 11);
         assert!(hgf_core::disk::trackset::validate_tspec(&t.spec().unwrap()).is_ok());
+    }
+
+    #[test]
+    fn nibble_reads_84_cylinders_of_a_full_disk() {
+        let mut s = Settings::default();
+        let (t, g) = s.nibble_tracks();
+        assert_eq!(t.spec().as_deref(), Some("c=0-83:h=0-1"));
+        assert_eq!(g.len(), 168);
+        s.end = 40;
+        assert_eq!(s.nibble_tracks().0.spec().as_deref(), Some("c=0-40:h=0-1"));
+        assert!(!Settings::default().write_precomp, "writes like gw by default");
     }
 
     #[test]

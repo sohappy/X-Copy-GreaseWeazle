@@ -16,7 +16,7 @@ use eframe::egui::{Color32, Key, TextureHandle, Ui};
 use hgf_core::disk::naming::safe_file_stem;
 use hgf_core::gw::{locate, runner};
 use hgf_core::TrackSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver};
 use std::time::Instant;
 
@@ -52,6 +52,9 @@ enum Act {
     Bus,
     SoundToggle,
     ConfirmToggle,
+    RereadToggle,
+    PrecompToggle,
+    KeepFluxToggle,
     PortNext,
 }
 
@@ -82,6 +85,9 @@ struct Modal {
     bus: Bus,
     sound: bool,
     confirm: bool,
+    reread: bool,
+    precomp: bool,
+    keep_flux: bool,
 }
 
 impl Modal {
@@ -98,6 +104,9 @@ impl Modal {
             bus: Bus::Ibm,
             sound: true,
             confirm: true,
+            reread: true,
+            precomp: false,
+            keep_flux: false,
         }
     }
 }
@@ -131,6 +140,40 @@ struct LastImage {
     format: String,
     tracks: hgf_core::gw::TrackOpts,
     geo: TrackSet,
+    /// File name shown while writing (`GAME.ADF`); empty for internal images.
+    name: String,
+}
+
+/// How an image is written on each target disk.
+#[derive(Clone)]
+struct WriteJob {
+    img: LastImage,
+    /// Start of the status label: `WRITING`, `FORMATTING`…
+    verb: &'static str,
+    no_verify: bool,
+    pre_erase: bool,
+    retries: Option<u32>,
+    /// TRACK0: high-frequency erase of the tracks before writing them (old stubborn signal).
+    hfreq_erase: bool,
+}
+
+/// Which command an operation belongs to: REPEAT replays the last operation of the command
+/// selected on screen.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum OpKey {
+    Copy(Flow),
+    Tool(ToolMode),
+}
+
+/// What REPEAT does again, without asking for any file.
+#[derive(Clone)]
+enum Redo {
+    /// Write the same image on new disks (ADF>DF, DF>DF once read, FORMAT, TRACK0, KICKDISK).
+    Write { job: WriteJob, done: String },
+    /// Erase the same tracks.
+    Erase { tracks: hgf_core::gw::TrackOpts, geo: TrackSet },
+    /// DF>ADF: read the next disk into the same folder, named after its volume.
+    ReadTo { dir: Option<PathBuf>, ext: &'static str },
 }
 
 pub struct App {
@@ -139,8 +182,15 @@ pub struct App {
     font: Font,
     dots: TextureHandle,
     modal: Option<Modal>,
-    last_image: Option<LastImage>,
-    pending_image: Option<(u64, LastImage)>,
+    /// Last operation, replayed by REPEAT.
+    last_op: Option<(OpKey, Redo)>,
+    /// Operation recorded once the running task list completes (DF>DF: the image exists only
+    /// after a successful read).
+    pending_op: Option<(u64, (OpKey, Redo))>,
+    /// DF>ADF repeated: save in this folder without asking.
+    auto_save: Option<Option<PathBuf>>,
+    /// Image being written or read, shown on the drive panel.
+    image_name: Option<(Flow, String)>,
     /// File dialog open in the background (never blocks the window).
     picking: Option<(Pick, Receiver<Option<PathBuf>>)>,
     temps: Vec<PathBuf>,
@@ -152,6 +202,28 @@ pub struct App {
     status_seen: String,
     status_since: Instant,
     t0: Instant,
+}
+
+/// `dir/stem.ext`, or `dir/stem_2.ext`, `stem_3`… when the file already exists.
+fn unique_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
+    let mut p = dir.join(format!("{stem}.{ext}"));
+    let mut n = 2;
+    while p.exists() {
+        p = dir.join(format!("{stem}_{n}.{ext}"));
+        n += 1;
+    }
+    p
+}
+
+/// Upper-case file name of `path`, shortened to `max` characters for the screen.
+fn short_name(path: &Path, max: usize) -> String {
+    let n = path.file_name().map(|n| n.to_string_lossy().to_uppercase()).unwrap_or_default();
+    if n.chars().count() <= max {
+        n
+    } else {
+        let keep: String = n.chars().take(max.saturating_sub(2)).collect();
+        format!("{keep}..")
+    }
 }
 
 fn temp_path(name: &str) -> PathBuf {
@@ -206,8 +278,10 @@ impl App {
             font: Font::new(ctx),
             dots: gfx::dots_texture(ctx),
             modal: None,
-            last_image: None,
-            pending_image: None,
+            last_op: None,
+            pending_op: None,
+            auto_save: None,
+            image_name: None,
             picking: None,
             temps: Vec::new(),
             detect_rx: None,
@@ -339,6 +413,21 @@ impl App {
                     m.confirm = !m.confirm;
                 }
             }
+            Act::RereadToggle => {
+                if let Some(m) = &mut self.modal {
+                    m.reread = !m.reread;
+                }
+            }
+            Act::PrecompToggle => {
+                if let Some(m) = &mut self.modal {
+                    m.precomp = !m.precomp;
+                }
+            }
+            Act::KeepFluxToggle => {
+                if let Some(m) = &mut self.modal {
+                    m.keep_flux = !m.keep_flux;
+                }
+            }
             Act::PortNext => {
                 // AUTO, then every serial port found (Greaseweazles first)
                 if let Some(m) = &mut self.modal {
@@ -426,7 +515,14 @@ impl eframe::App for App {
                 let ext = if nibble { "scp" } else { "adf" };
                 let stem = name.as_deref().map(safe_file_stem).unwrap_or_else(|| "disk".into());
                 let what = if nibble { "SCP flux image" } else { "Amiga disk file" };
-                self.spawn_dialog(Pick::ReadTo, Some((format!("{stem}.{ext}"), ext, what)));
+                match self.auto_save.take() {
+                    // REPEAT: same folder as the previous image, no file requester.
+                    Some(dir) => {
+                        let dir = dir.or_else(|| self.start_dir()).unwrap_or_else(|| PathBuf::from("."));
+                        self.read_to_file(unique_path(&dir, &stem, ext));
+                    }
+                    None => self.spawn_dialog(Pick::ReadTo, Some((format!("{stem}.{ext}"), ext, what))),
+                }
             }
         }
         if self.modal.is_none() {
@@ -443,11 +539,11 @@ impl eframe::App for App {
                 self.modal = Some(Modal::new(ModalKind::Engine, &a.title, a.lines, buttons));
             }
         }
-        if let Some((n, _)) = &self.pending_image {
+        if let Some((n, _)) = &self.pending_op {
             if self.eng.done_count >= *n {
-                self.last_image = self.pending_image.take().map(|p| p.1);
+                self.last_op = self.pending_op.take().map(|p| p.1);
             } else if !self.eng.busy() {
-                self.pending_image = None;
+                self.pending_op = None;
             }
         }
         if self.eng.status != self.status_seen {
@@ -512,5 +608,31 @@ impl eframe::App for App {
         for t in &self.temps {
             let _ = std::fs::remove_file(t);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repeat_names_never_overwrite() {
+        let dir = std::env::temp_dir().join(format!("xcopy-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let first = unique_path(&dir, "Workbench", "adf");
+        assert_eq!(first, dir.join("Workbench.adf"));
+        std::fs::write(&first, b"x").unwrap();
+        assert_eq!(unique_path(&dir, "Workbench", "adf"), dir.join("Workbench_2.adf"));
+        std::fs::write(dir.join("Workbench_2.adf"), b"x").unwrap();
+        assert_eq!(unique_path(&dir, "Workbench", "adf"), dir.join("Workbench_3.adf"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn shown_names_fit_the_screen() {
+        assert_eq!(short_name(Path::new("/x/game.adf"), 20), "GAME.ADF");
+        let long = short_name(Path::new("/x/a_very_long_game_name_disk1.adf"), 20);
+        assert_eq!(long.chars().count(), 20);
+        assert!(long.ends_with(".."));
     }
 }

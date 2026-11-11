@@ -49,7 +49,7 @@
 | `DOSCOPY` | Copie secteur AmigaDOS (ADF), avec écriture vérifiée. |
 | `DOSCOPY+` | Comme DOSCOPY, avec le profil récupération (5 tours, 8 relectures, 2 repositionnements de la tête) pour les disques abîmés. |
 | `BAMCOPY` | Lit d'abord le cylindre 40 (bloc racine et bitmap), puis **seulement les cylindres qui contiennent des fichiers**. Beaucoup plus rapide sur un disque peu rempli. Le disque cible est écrit en entier, les pistes libres vierges. Si le bitmap est invalide, il lit tout le disque. |
-| `NIBBLE` | Copie au niveau du flux magnétique (SCP) : garde les protections anti-copie. DEVICE affiche alors `DF>SCP` / `SCP>DF` (fichiers SCP ou IPF). |
+| `NIBBLE` | Copie au niveau du flux magnétique (SCP) : garde les protections anti-copie. Avec START-END sur toute la disquette, il lit les cylindres 0-83, où certaines protections cachent des données. DEVICE affiche alors `DF>SCP` / `SCP>DF` (fichiers SCP ou IPF). |
 
 **DEVICE** choisit le sens de la copie :
 
@@ -65,7 +65,7 @@
 |---|---|
 | `FORMAT` | Disque AmigaDOS vierge (OFS/FFS, DD/HD, nom de volume), écrit et vérifié. Avec DEVICE = `ADF`, enregistre une image vierge. |
 | `QFORMAT` | Formatage rapide : toutes les pistes sont écrites, mais sans relecture de vérification. |
-| `TRACK0` | Efface puis réécrit **uniquement la piste 0** (boot block vierge), avec 8 relectures de vérification. Le reste du disque n'est pas touché ; le disque ne démarre plus mais ses fichiers restent lisibles. |
+| `TRACK0` | Réécrit **uniquement la piste 0** (boot block vierge) : effacement haute fréquence d'abord (`gw erase --hfreq`, supprime les anciens signaux tenaces), puis écriture avec pré-effacement et 8 relectures de vérification. En cas d'échec, une fenêtre aide à distinguer disquette abîmée et lecteur sale ou désaligné. Le reste du disque n'est pas touché ; le disque ne démarre plus mais ses fichiers restent lisibles. |
 | `ERASE` | Efface la plage de pistes choisie. |
 | `SPEEDCHK` | Mesure la vitesse du lecteur source (tr/min et écart à 300). |
 | `CLEAN` | Nettoyage des têtes avec une disquette de nettoyage. |
@@ -76,7 +76,7 @@
 | Bouton | Touche | Effet |
 |---|---|---|
 | **START** | Entrée | Lance l'opération. Une confirmation est demandée avant d'écraser un disque. |
-| **REPEAT** | F2 | Réécrit la dernière image copiée sur de nouvelles disquettes, sans relire la source. Pratique pour une série de copies. Dans TOOLS, relance l'outil choisi (un autre FORMAT, ERASE…). |
+| **REPEAT** | F2 | Relance la dernière commande sur de nouvelles disquettes, sans redemander le fichier : DF>DF et ADF>DF réécrivent la même image (ni relecture, ni sélecteur de fichier), DF>ADF lit la disquette suivante et l'enregistre à côté de la précédente sous son nom de volume (`NOM.adf`, `NOM_2.adf`…), FORMAT / ERASE / TRACK0 / KICKDISK repartent avec les mêmes réglages. Le fichier image en cours est affiché au-dessus des lecteurs et dans la ligne d'état. |
 | **STOP** | Échap | Interrompt proprement ; le lecteur est libéré. |
 | **GW INFO** | | Modèle, firmware, port et USB du Greaseweazle. |
 | **DIRECTORY** | | Volume, système de fichiers, état du boot block et liste des fichiers du disque source ou d'un ADF. |
@@ -159,7 +159,28 @@ Cliquez sur **SETUP** (en haut à droite) et collez le chemin complet de `gw` da
 ou cliquez sur **DETECT** : il trouve `gw` et lui demande quel Greaseweazle est branché et sur quel
 port série (la même recherche a lieu au démarrage ; le modèle s'affiche en haut à droite). La ligne
 **PORT** fait défiler les ports série trouvés (vide = automatique). **CONFIRM BEFORE WRITING** coupe
-la question « ALL DATA … WILL BE DESTROYED », comme sur le X-COPY d'origine. Vous pouvez aussi lancer le programme avec la variable `XCOPY_GW` :
+la question « ALL DATA … WILL BE DESTROYED », comme sur le X-COPY d'origine.
+
+Trois options concernent la qualité des copies :
+
+* **RE-READ BAD TRACKS (3 PASSES)** (activée par défaut) : après une lecture DOSCOPY, DOSCOPY+ ou BAMCOPY, seules les
+  pistes auxquelles il manque des secteurs sont relues avec le profil récupération (5 tours,
+  repositionnements de la tête), en 3 passes au plus. Après chaque passe, chaque secteur lu
+  correctement est fusionné dans l'image : une piste est complète dès que chacun de ses secteurs a
+  été lu une fois, même si aucune passe ne l'a lue en entier. Les pistes récupérées affichent **R**
+  dans la grille. Les disquettes dont beaucoup de pistes n'ont aucun secteur AmigaDOS (formats de
+  jeux, protections) ne sont pas relues : copiez-les en NIBBLE.
+* **WRITE PRECOMP (140NS FROM CYL 40)** (désactivée par défaut, pour que X-COPY écrive exactement
+  comme `gw` et les autres interfaces) : précompensation d'écriture du trackdisk.device de l'Amiga
+  (`gw write --precomp 40=140`) sur les disquettes DD. À essayer si les pistes intérieures de vos
+  copies se lisent mal sur Amiga. Pas appliquée aux disquettes HD ni aux écritures de flux (SCP).
+* **KEEP FLUX OF EACH PASS (SCP)** (désactivée par défaut) : chaque passe d'une lecture DOSCOPY /
+  DOSCOPY+ (la lecture principale et chaque relecture) est lue en flux brut dans
+  `Read passes/<nom> pass N.scp`, à côté de l'ADF (dans le dernier dossier utilisé pour une copie
+  DF>DF), puis décodée dans l'image avec `gw convert`. Garde tout ce qu'il faut pour analyser plus
+  tard une disquette difficile (HxC, `gw convert` avec d'autres options…).
+
+Vous pouvez aussi lancer le programme avec la variable `XCOPY_GW` :
 
 ```bash
 XCOPY_GW=$(which gw) ./xcopy-modern
@@ -228,6 +249,19 @@ Face **haute** = tête 1, face **basse** = tête 0 (convention Amiga).
 **Savoir si une disquette est HS** : FORMAT (pas QFORMAT), puis CHECKDISK. Tout en `O` vert : bonne.
 Quelques `R` : fatiguée. Des cases rouges : HS sur ces pistes. Testez d'abord une disquette connue
 comme bonne, pour mettre le lecteur hors de cause.
+
+### Un autre programme Greaseweazle copie mieux ?
+
+Avec la même version de `gw`, tous les programmes décodent la disquette de la même façon : une
+différence vient des options utilisées, ou de ce qui a été comparé. Les cas habituels (ici face à
+Ferriteweazle) :
+
+| Situation | Cause probable | Solution dans X-COPY |
+|---|---|---|
+| Jeu protégé que Ferriteweazle copie mais pas X-COPY | Vous avez sans doute utilisé son préréglage « flux » (SCP brut, 84 cylindres) : il copie le signal magnétique brut, protections comprises. DOSCOPY ne copie que les secteurs AmigaDOS. | Utilisez **NIBBLE** (DF>SCP ou DF>DF) |
+| Disquette abîmée : moins de pistes en erreur avec Ferriteweazle | « Read passes » y était réglé au-dessus de 1 ; X-COPY ne faisait qu'une lecture avant la v4 | Fait : relecture + fusion par défaut, avec des réglages plus insistants. **KEEP FLUX OF EACH PASS** garde le flux de chaque passe, comme son « Each pass » |
+| Écriture : les disquettes écrites par Ferriteweazle se lisent mieux sur Amiga | Options d'écriture différentes : Ferriteweazle utilise les réglages par défaut de gw, X-COPY v4/v5 imposait la précompensation `40=140` | Fait : précompensation désactivée par défaut, X-COPY écrit comme gw |
+| Cylindres 80-83 | Son préréglage flux lit jusqu'au cylindre 83 (certaines protections les utilisent) | Fait : NIBBLE lit (et en DF>DF écrit) les cylindres 0-83 quand START-END couvre toute la disquette |
 
 ## Compiler depuis les sources
 

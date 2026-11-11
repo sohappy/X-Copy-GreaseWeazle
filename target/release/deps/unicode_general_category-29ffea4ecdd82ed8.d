@@ -1,0 +1,12 @@
+/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/deps/unicode_general_category-29ffea4ecdd82ed8.d: /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/lib.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/category.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/tables.rs /Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/build/unicode-general-category-a88b0ace1f5a11d2/out/category.rs
+
+/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/deps/libunicode_general_category-29ffea4ecdd82ed8.rlib: /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/lib.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/category.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/tables.rs /Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/build/unicode-general-category-a88b0ace1f5a11d2/out/category.rs
+
+/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/deps/libunicode_general_category-29ffea4ecdd82ed8.rmeta: /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/lib.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/category.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/tables.rs /Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/build/unicode-general-category-a88b0ace1f5a11d2/out/category.rs
+
+/Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/lib.rs:
+/Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/category.rs:
+/Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-general-category-1.1.0/src/tables.rs:
+/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/build/unicode-general-category-a88b0ace1f5a11d2/out/category.rs:
+
+# env-dep:OUT_DIR=/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/build/unicode-general-category-a88b0ace1f5a11d2/out

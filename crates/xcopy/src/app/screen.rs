@@ -350,7 +350,7 @@ impl App {
         let bw = (1264.0 - 6.0 * 8.0) / 7.0;
         let buttons: [(&str, Color32, Act, &str); 7] = [
             ("START", pal::YELLOW, Act::Start, "START THE SELECTED OPERATION (ENTER)"),
-            ("REPEAT", pal::YELLOW, Act::Repeat, "REPEAT: WRITE THE LAST IMAGE AGAIN TO NEW DISKS (F2)"),
+            ("REPEAT", pal::YELLOW, Act::Repeat, "REPEAT: SAME COMMAND AGAIN, NO FILE ASKED (F2)"),
             ("STOP", pal::YELLOW, Act::Stop, "STOP: INTERRUPT AND RELEASE THE DRIVE (ESC)"),
             ("GW INFO", pal::GREEN, Act::DiskInfo, "GW INFO: GREASEWEAZLE MODEL, FIRMWARE, PORT, USB"),
             ("DIRECTORY", pal::GREEN, Act::Directory, "DIRECTORY: SHOW THE AMIGADOS FILES OF THE SOURCE"),
@@ -382,8 +382,23 @@ impl App {
 
         // ── drives ──
         g.line_frame(8.0, 374.0, 500.0, 274.0);
-        g.text_centered(258.0, 384.0, 2.4, "SOURCE DRIVES", Style::shadowed(pal::CYAN));
-        g.text_centered(258.0, 626.0, 2.4, "TARGET DRIVES", Style::shadowed(pal::CYAN));
+        // ADF>DF: the image replaces the source drives; DF>ADF: it replaces the targets.
+        let fit = |t: &str| (480.0 / (8.0 * t.chars().count() as f32)).min(2.4);
+        let image = self.image_name.as_ref().filter(|(f, _)| copy && *f == self.s.flow).map(|(_, n)| n);
+        match (image, self.s.flow) {
+            (Some(n), Flow::AdfToDisk) => {
+                let t = format!("SOURCE: {n}");
+                g.text_centered(258.0, 384.0, fit(&t), &t, Style::shadowed(pal::YELLOW))
+            }
+            _ => g.text_centered(258.0, 384.0, 2.4, "SOURCE DRIVES", Style::shadowed(pal::CYAN)),
+        }
+        match (image, self.s.flow) {
+            (Some(n), Flow::DiskToAdf) => {
+                let t = format!("TARGET: {n}");
+                g.text_centered(258.0, 626.0, fit(&t), &t, Style::shadowed(pal::YELLOW))
+            }
+            _ => g.text_centered(258.0, 626.0, 2.4, "TARGET DRIVES", Style::shadowed(pal::CYAN)),
+        }
         let uses_source = (copy && self.s.flow != Flow::AdfToDisk) || (!copy && tool == ToolMode::Speed);
         let uses_target = (copy && self.s.flow != Flow::DiskToAdf)
             || (!copy && tool != ToolMode::Speed && !((format_tool || kick) && self.s.tool_adf));
@@ -597,7 +612,7 @@ impl App {
         let shown = lines.len().min(visible);
         let lh = 8.0 * size + 6.0;
         let fields_h =
-            m.fields.len() as f32 * 64.0 + 8.0 + if m.kind == ModalKind::Setup { 144.0 } else { 0.0 };
+            m.fields.len() as f32 * 64.0 + 8.0 + if m.kind == ModalKind::Setup { 252.0 } else { 0.0 };
         let err_h = if m.error.is_some() { 28.0 } else { 0.0 };
         let hbox = 96.0 + shown as f32 * lh + fields_h + err_h + 70.0;
         let x = (gfx::W - wbox) / 2.0;
@@ -683,6 +698,45 @@ impl App {
             );
             if h.click {
                 acts.push(Act::ConfirmToggle);
+            }
+            cy += 36.0;
+            let h = hot("reread", x + 32.0, cy, wbox - 64.0, 28.0);
+            g.knob(x + 40.0, cy + 12.0, h.hover);
+            g.text(
+                x + 56.0,
+                cy + 4.0,
+                2.0,
+                &format!("RE-READ BAD TRACKS (3 PASSES): {}", if m.reread { "ON" } else { "OFF" }),
+                Style::shadowed(if h.hover { pal::WHITE } else { pal::YELLOW }),
+            );
+            if h.click {
+                acts.push(Act::RereadToggle);
+            }
+            cy += 36.0;
+            let h = hot("precomp", x + 32.0, cy, wbox - 64.0, 28.0);
+            g.knob(x + 40.0, cy + 12.0, h.hover);
+            g.text(
+                x + 56.0,
+                cy + 4.0,
+                2.0,
+                &format!("WRITE PRECOMP (140NS FROM CYL 40): {}", if m.precomp { "ON" } else { "OFF" }),
+                Style::shadowed(if h.hover { pal::WHITE } else { pal::YELLOW }),
+            );
+            if h.click {
+                acts.push(Act::PrecompToggle);
+            }
+            cy += 36.0;
+            let h = hot("keepflux", x + 32.0, cy, wbox - 64.0, 28.0);
+            g.knob(x + 40.0, cy + 12.0, h.hover);
+            g.text(
+                x + 56.0,
+                cy + 4.0,
+                2.0,
+                &format!("KEEP FLUX OF EACH PASS (SCP): {}", if m.keep_flux { "ON" } else { "OFF" }),
+                Style::shadowed(if h.hover { pal::WHITE } else { pal::YELLOW }),
+            );
+            if h.click {
+                acts.push(Act::KeepFluxToggle);
             }
             cy += 36.0;
             let h = hot("ports", x + 32.0, cy, wbox - 64.0, 28.0);

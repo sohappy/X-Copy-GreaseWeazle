@@ -195,12 +195,10 @@ impl OutputParser {
             return Output::FatalHeader;
         }
         if let Some(msg) = line.strip_prefix("Command Failed: ") {
-        if msg.contains("No Index") {
-            return Output::Warning(msg.to_string());
-        }
-        if msg.contains("No Index") {
-            return Output::Warning(msg.to_string());
-        }
+            // No index pulse (no disk, or a track gw cannot sync on): reported, not fatal here.
+            if msg.contains("No Index") {
+                return Output::Warning(msg.to_string());
+            }
             return Output::CommandFailed(msg.to_string());
         }
         // Failures that gw reports with exit status 0 (update, bandwidth, mode checks).
@@ -429,7 +427,8 @@ mod tests {
         let mut p = OutputParser::new();
         assert_eq!(p.feed("** FATAL ERROR:"), Output::FatalHeader);
         assert_eq!(p.feed("Cannot find the Greaseweazle device"), Output::DeviceNotFound);
-         
+        assert!(matches!(one("Command Failed: No Index"), Output::Warning(m) if m == "No Index"));
+        assert!(matches!(one("Command Failed: Bad Command"), Output::CommandFailed(_)));
     }
 
     #[test]

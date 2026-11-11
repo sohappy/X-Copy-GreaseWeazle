@@ -109,6 +109,9 @@ impl App {
         m.bus = self.s.bus;
         m.sound = self.s.sound;
         m.confirm = self.s.confirm;
+        m.reread = self.s.reread;
+        m.precomp = self.s.write_precomp;
+        m.keep_flux = self.s.keep_flux;
         self.modal = Some(m);
     }
 
@@ -177,6 +180,9 @@ impl App {
                     self.s.bus = m.bus;
                     self.s.sound = m.sound;
                     self.s.confirm = m.confirm;
+                    self.s.reread = m.reread;
+                    self.s.write_precomp = m.precomp;
+                    self.s.keep_flux = m.keep_flux;
                     for i in 0..4 {
                         if self.s.bus.drive(i).is_none() {
                             self.s.targets[i] = false;

@@ -170,7 +170,7 @@ impl ReadProfile {
 
     pub fn help(self) -> &'static str {
         match self {
-            ReadProfile::Standard => "gw defaults: 3 retries per track.",
+            ReadProfile::Standard => "8 retries per track.",
             ReadProfile::Recovery => {
                 "Damaged disks: 5 revolutions, 8 retries and 2 head re-seeks per track. \
                  The recovered image is saved to your output file."
@@ -208,7 +208,7 @@ impl ReadOpts {
     pub fn effective(&self) -> ReadOpts {
         let mut o = self.clone();
         match self.profile {
-            ReadProfile::Standard => { o.retries = Some(o.retries.unwrap_or(8)); }
+            ReadProfile::Standard => o.retries = Some(o.retries.unwrap_or(8)),
             ReadProfile::Recovery => {
                 o.revs = Some(o.revs.unwrap_or(5).max(5));
                 o.retries = Some(o.retries.unwrap_or(8).max(8));
@@ -519,9 +519,7 @@ impl Action {
                 let mut a = Args::new("read");
                 a.device(cfg);
                 a.drive(drive);
-                
                 a.diskdefs(cfg);
-                
                 a.text("--format", &o.format);
                 a.num("--revs", o.revs);
                 a.tracks(&o.tracks);
@@ -538,9 +536,7 @@ impl Action {
                 let mut a = Args::new("write");
                 a.device(cfg);
                 a.drive(drive);
-                
                 a.diskdefs(cfg);
-                
                 a.text("--format", &o.format);
                 a.tracks(&o.tracks);
                 a.flag("--pre-erase", o.pre_erase);
@@ -558,7 +554,6 @@ impl Action {
             Action::Convert(o) => {
                 let mut a = Args::new("convert");
                 a.diskdefs(cfg);
-                
                 a.text("--format", &o.format);
                 a.tracks(&o.tracks);
                 a.text("--out-tracks", &o.out_tracks);
@@ -575,7 +570,6 @@ impl Action {
                 let mut a = Args::new("erase");
                 a.device(cfg);
                 a.drive(drive);
-                
                 a.num("--revs", o.revs);
                 a.tracks(&o.tracks);
                 a.flag("--hfreq", o.hfreq);
@@ -586,7 +580,6 @@ impl Action {
                 let mut a = Args::new("clean");
                 a.device(cfg);
                 a.drive(drive);
-                
                 a.num("--cyls", Some(o.cyls));
                 a.num("--passes", Some(o.passes));
                 a.num("--linger", Some(o.linger));
@@ -596,7 +589,6 @@ impl Action {
                 let mut a = Args::new("seek");
                 a.device(cfg);
                 a.drive(drive);
-                
                 // gw would prompt on stdin for extreme cylinders; the GUI confirms instead.
                 a.flag("--force", true);
                 a.flag("--motor-on", o.motor_on);
@@ -633,7 +625,6 @@ impl Action {
                 a.push("get");
                 a.device(cfg);
                 a.drive(drive);
-                
                 a.push(pin.to_string());
                 a
             }
@@ -660,7 +651,6 @@ impl Action {
                 let mut a = Args::new("rpm");
                 a.device(cfg);
                 a.drive(drive);
-                
                 a.num("--nr", Some(*nr));
                 a
             }
@@ -668,9 +658,7 @@ impl Action {
                 let mut a = Args::new("align");
                 a.device(cfg);
                 a.drive(drive);
-                
                 a.diskdefs(cfg);
-                
                 a.text("--format", &o.format);
                 a.num("--revs", o.revs);
                 a.text("--tracks", &o.tracks);
@@ -894,7 +882,8 @@ mod tests {
     fn read_keeps_format_geometry() {
         let o = ReadOpts { output: "disk.adf".into(), format: "amiga.amigados".into(), ..Default::default() };
         let a = s(Action::Read(o).args(&GwConfig::default(), Drive::A));
-        assert_eq!(a, ["read", "--drive", "A", "--format", "amiga.amigados", "disk.adf"]);
+        // standard profile: 8 retries per track (gw's own default is 3)
+        assert_eq!(a, ["read", "--drive", "A", "--format", "amiga.amigados", "--retries", "8", "disk.adf"]);
     }
 
     #[test]

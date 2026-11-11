@@ -35,18 +35,24 @@ impl App {
 
     /// Tasks reading the source disk into `out` with the current copy mode. BAMCOPY first reads
     /// cylinder 40 (root block and bitmap), then only the cylinders holding allocated blocks.
-    pub(super) fn read_tasks(&self, out: &Path) -> Vec<Task> {
+    /// `name`: image file shown in the status line (empty for internal images).
+    pub(super) fn read_tasks(&self, out: &Path, name: &str) -> Vec<Task> {
         let src = self.s.source;
         let Some(drive) = self.s.bus.drive(src) else { return Vec::new() };
         let nibble = self.s.copy_mode == CopyMode::Nibble;
         let format = if nibble { String::new() } else { self.s.sector_format().to_string() };
-        let (tracks, geo) = self.s.tracks();
+        let (tracks, geo) = if nibble { self.s.nibble_tracks() } else { self.s.tracks() };
         let profile = if self.s.copy_mode == CopyMode::DosCopyPlus {
             ReadProfile::Recovery
         } else {
             ReadProfile::Standard
         };
-        let label = format!("READING {}", Self::dname(src));
+        let keep = self.keep_flux(out, name);
+        let label = if name.is_empty() {
+            format!("READING {}", Self::dname(src))
+        } else {
+            format!("READING {} > {name}", Self::dname(src))
+        };
         let hd = self.s.hd;
         let mut v = Vec::new();
         if self.s.copy_mode == CopyMode::BamCopy {
@@ -106,16 +112,47 @@ impl App {
                 ])
             })));
         } else {
-            let read = Action::Read(ReadOpts {
-                output: out.to_path_buf(),
-                format,
-                profile,
-                tracks,
-                ..Default::default()
-            });
-            v.push(Task::Gw { action: Box::new(read), drive, idx: src, label, geometry: geo });
+            let read = ReadOpts { output: out.to_path_buf(), format, profile, tracks, ..Default::default() };
+            match &keep {
+                // Flux kept: pass 1 is read raw, then decoded into the image.
+                Some(k) => {
+                    v.extend(crate::recover::flux_then_decode(read, k.pass(1), out, drive, src, label, geo))
+                }
+                None => v.push(Task::Gw {
+                    action: Box::new(Action::Read(read)),
+                    drive,
+                    idx: src,
+                    label,
+                    geometry: geo,
+                }),
+            }
+        }
+        // Bad tracks: read them again and merge the sectors recovered (not for flux copies).
+        if !nibble && self.s.reread {
+            let temp = temp_path("reread.adf");
+            let fmt = self.s.sector_format().to_string();
+            v.push(crate::recover::task(out.to_path_buf(), temp, drive, src, fmt, hd, keep));
         }
         v
+    }
+
+    /// SETUP "KEEP FLUX OF EACH PASS": where the passes of this read go. Beside the image for
+    /// DF>ADF; for a disk-to-disk copy (temporary image), in the last folder used.
+    fn keep_flux(&self, out: &Path, name: &str) -> Option<crate::recover::Keep> {
+        if !self.s.keep_flux || self.s.copy_mode == CopyMode::Nibble {
+            return None;
+        }
+        let (dir, stem) = if name.is_empty() {
+            let home =
+                std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+            let dir = self.start_dir().or(home).unwrap_or_else(|| PathBuf::from("."));
+            (dir, format!("DF{} copy {}", self.s.source, hgf_core::fs::bytes::now_secs()))
+        } else {
+            let stem =
+                out.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "disk".into());
+            (out.parent().map(Path::to_path_buf).unwrap_or_default(), stem)
+        };
+        crate::recover::Keep::new(&dir, &stem).ok()
     }
 
     /// DF>ADF, once the destination file is chosen.
@@ -125,11 +162,18 @@ impl App {
         }
         let _ = std::fs::remove_file(&out);
         let file = out.file_name().map(|n| n.to_string_lossy().to_uppercase()).unwrap_or_default();
-        let mut v = self.read_tasks(&out);
+        let shown = short_name(&out, 20);
+        let mut v = self.read_tasks(&out, &shown);
         if self.s.copy_mode != CopyMode::Nibble {
             v.push(Task::BootCheck { path: out.clone(), hd: self.s.hd });
         }
         v.push(Task::Done { message: format!("IMAGE SAVED: {file}") });
+        let ext = if self.s.copy_mode == CopyMode::Nibble { "scp" } else { "adf" };
+        self.last_op = Some((
+            OpKey::Copy(Flow::DiskToAdf),
+            Redo::ReadTo { dir: out.parent().map(Path::to_path_buf), ext },
+        ));
+        self.image_name = Some((Flow::DiskToAdf, file));
         self.launch(v);
     }
 
@@ -154,31 +198,51 @@ impl App {
         };
         let geo = if format.is_empty() { TrackSet::dense(80, 2) } else { geo };
         let tracks = if format.is_empty() { Default::default() } else { tracks };
-        let img = LastImage { path: input, format, tracks, geo };
+        let name = short_name(&input, 20);
+        let img = LastImage { path: input, format, tracks, geo, name: name.clone() };
+        let job = WriteJob {
+            img,
+            verb: "WRITING",
+            no_verify: false,
+            pre_erase: false,
+            retries: None,
+            hfreq_erase: false,
+        };
+        let done = format!("OPERATION DONE. {name} WRITTEN.");
         let mut v = self.confirm_first(Self::destroy_confirm(&targets));
-        v.extend(self.write_tasks(&img, &targets, None, false));
-        v.push(Task::Done { message: "OPERATION DONE. IMAGE WRITTEN.".into() });
-        self.pending_image = Some((self.eng.done_count + 1, img));
+        v.extend(self.write_tasks(&job, &targets, None));
+        v.push(Task::Done { message: done.clone() });
+        // REPEAT writes this image again, without the file requester.
+        self.last_op = Some((OpKey::Copy(Flow::AdfToDisk), Redo::Write { job, done }));
+        self.image_name = Some((Flow::AdfToDisk, name));
         self.launch(v);
     }
 
-    pub(super) fn write_task(
-        &self,
-        input: &Path,
-        format: &str,
-        tracks: hgf_core::gw::TrackOpts,
-        no_verify: bool,
-        idx: usize,
-        geo: TrackSet,
-    ) -> Option<Task> {
+    /// One write of `job` on drive `idx`; the label names the image file when there is one.
+    pub(super) fn write_task(&self, job: &WriteJob, idx: usize) -> Option<Task> {
+        // Amiga trackdisk precompensation on the inner cylinders of DD disks (flux images
+        // already hold their timings, HD disks are written without it).
+        let precomp = if self.s.write_precomp && job.img.format == "amiga.amigados" {
+            hgf_core::diag::compat::AMIGA_PRECOMP.to_string()
+        } else {
+            String::new()
+        };
         let action = Action::Write(WriteOpts {
-            input: input.to_path_buf(),
-            format: format.to_string(),
-            tracks,
-            no_verify,
+            input: job.img.path.clone(),
+            format: job.img.format.clone(),
+            tracks: job.img.tracks.clone(),
+            no_verify: job.no_verify,
+            pre_erase: job.pre_erase,
+            retries: job.retries,
+            precomp,
             ..Default::default()
         });
-        self.gw(action, idx, format!("WRITING {}", Self::dname(idx)), geo)
+        let label = if job.img.name.is_empty() {
+            format!("{} {}", job.verb, Self::dname(idx))
+        } else {
+            format!("{} {} < {}", job.verb, Self::dname(idx), job.img.name)
+        };
+        self.gw(action, idx, label, job.img.geo.clone())
     }
 
     /// The confirmation step, unless SETUP turned confirmations off.
@@ -221,10 +285,9 @@ impl App {
     /// Writes of `image` to every target; the source drive (disk swap) goes last with a prompt.
     pub(super) fn write_tasks(
         &self,
-        img: &LastImage,
+        job: &WriteJob,
         targets: &[usize],
         swap_from: Option<usize>,
-        no_verify: bool,
     ) -> Vec<Task> {
         let mut order: Vec<usize> = targets.iter().copied().filter(|&t| Some(t) != swap_from).collect();
         if let Some(s) = swap_from.filter(|s| targets.contains(s)) {
@@ -238,14 +301,16 @@ impl App {
                     text: format!("REMOVE THE SOURCE DISK AND INSERT THE TARGET DISK IN {}.", Self::dname(t)),
                 });
             }
-            v.extend(self.write_task(
-                &img.path,
-                &img.format,
-                img.tracks.clone(),
-                no_verify,
-                t,
-                img.geo.clone(),
-            ));
+            if job.hfreq_erase {
+                // A high-frequency erase removes old signals that a plain erase leaves behind.
+                let a = Action::Erase(EraseOpts {
+                    tracks: job.img.tracks.clone(),
+                    hfreq: true,
+                    ..Default::default()
+                });
+                v.extend(self.gw(a, t, format!("HF ERASE {}", Self::dname(t)), job.img.geo.clone()));
+            }
+            v.extend(self.write_task(job, t));
         }
         v
     }
@@ -254,6 +319,7 @@ impl App {
         if self.eng.busy() || self.picking.is_some() {
             return;
         }
+        self.auto_save = None;
         match self.s.section {
             Section::Copy => self.start_copy(),
             Section::Tools => self.start_tool(),
@@ -264,7 +330,7 @@ impl App {
         let nibble = self.s.copy_mode == CopyMode::Nibble;
         let format = if nibble { String::new() } else { self.s.sector_format().to_string() };
         let ext = if nibble { "scp" } else { "adf" };
-        let (tracks, geo) = self.s.tracks();
+        let (tracks, geo) = if nibble { self.s.nibble_tracks() } else { self.s.tracks() };
         let src = self.s.source;
         match self.s.flow {
             Flow::DiskToDisk => {
@@ -273,6 +339,10 @@ impl App {
                 }
                 let Some(targets) = self.targets_or_notice() else { return };
                 let temp = temp_path(&format!("copy.{ext}"));
+                // the previous copy image is overwritten: REPEAT waits for the new one
+                if matches!(self.last_op, Some((OpKey::Copy(Flow::DiskToDisk), _))) {
+                    self.last_op = None;
+                }
                 let _ = std::fs::remove_file(&temp);
                 self.temps.push(temp.clone());
                 // BAMCOPY writes the whole disk (unread tracks blank), so the target is clean.
@@ -282,13 +352,21 @@ impl App {
                     (tracks, geo)
                 };
                 let mut v = self.confirm_first(Self::destroy_confirm(&targets));
-                v.extend(self.read_tasks(&temp));
+                v.extend(self.read_tasks(&temp, ""));
                 v.push(Task::CheckBad);
                 if !nibble {
                     v.push(Task::BootCheck { path: temp.clone(), hd: self.s.hd });
                 }
-                let img = LastImage { path: temp, format, tracks, geo };
-                v.extend(self.write_tasks(&img, &targets, Some(src), false));
+                let img = LastImage { path: temp, format, tracks, geo, name: String::new() };
+                let job = WriteJob {
+                    img,
+                    verb: "WRITING",
+                    no_verify: false,
+                    pre_erase: false,
+                    retries: None,
+                    hfreq_erase: false,
+                };
+                v.extend(self.write_tasks(&job, &targets, Some(src)));
                 v.push(Task::Done {
                     message: format!(
                         "OPERATION DONE. {} COP{} WRITTEN.",
@@ -296,7 +374,10 @@ impl App {
                         if targets.len() > 1 { "IES" } else { "Y" }
                     ),
                 });
-                self.pending_image = Some((self.eng.done_count + 1, img));
+                // The image exists only once read: REPEAT gets it when the copy completes.
+                let redo = Redo::Write { job, done: "OPERATION DONE. ONE MORE COPY.".into() };
+                self.pending_op = Some((self.eng.done_count + 1, (OpKey::Copy(Flow::DiskToDisk), redo)));
+                self.image_name = None;
                 self.launch(v);
             }
             Flow::DiskToAdf => {
@@ -315,10 +396,14 @@ impl App {
                     ..Default::default()
                 });
                 let geo40 = TrackSet { cyls: vec![40], heads: vec![0, 1] };
-                let mut v: Vec<Task> = self
-                    .gw(read, src, format!("READING NAME {}", Self::dname(src)), geo40)
-                    .into_iter()
-                    .collect();
+                let mut v: Vec<Task> = Vec::new();
+                if self.auto_save.is_some() {
+                    v.push(Task::Prompt {
+                        title: "REPEAT".into(),
+                        text: format!("INSERT THE NEXT SOURCE DISK IN {}.", Self::dname(src)),
+                    });
+                }
+                v.extend(self.gw(read, src, format!("READING NAME {}", Self::dname(src)), geo40));
                 v.push(Task::NameProbe { path: probe, hd: self.s.hd });
                 self.launch(v);
             }
@@ -360,30 +445,26 @@ impl App {
                     format: opts.gw_format().into(),
                     tracks: Default::default(),
                     geo: TrackSet::dense(80, 2),
+                    name: String::new(),
                 };
                 let quick = self.s.tool_mode == ToolMode::QFormat;
+                let job = WriteJob {
+                    img,
+                    verb: "FORMATTING",
+                    no_verify: quick,
+                    pre_erase: false,
+                    retries: None,
+                    hfreq_erase: false,
+                };
+                let done = format!(
+                    "FORMAT DONE: \"{}\" {}.",
+                    self.s.volume.to_uppercase(),
+                    if self.s.ffs { "FFS" } else { "OFS" }
+                );
                 let mut v = self.confirm_first(Self::destroy_confirm(&targets));
-                for t in &targets {
-                    let mut task = self.write_task(
-                        &img.path,
-                        &img.format,
-                        Default::default(),
-                        quick,
-                        *t,
-                        img.geo.clone(),
-                    );
-                    if let Some(Task::Gw { label, .. }) = &mut task {
-                        *label = format!("FORMATTING {}", Self::dname(*t));
-                    }
-                    v.extend(task);
-                }
-                v.push(Task::Done {
-                    message: format!(
-                        "FORMAT DONE: \"{}\" {}.",
-                        self.s.volume.to_uppercase(),
-                        if self.s.ffs { "FFS" } else { "OFS" }
-                    ),
-                });
+                v.extend(self.write_tasks(&job, &targets, None));
+                v.push(Task::Done { message: done.clone() });
+                self.last_op = Some((OpKey::Tool(self.s.tool_mode), Redo::Write { job, done }));
                 self.launch(v);
             }
             ToolMode::Track0 => {
@@ -414,30 +495,35 @@ impl App {
                         list.join(", ")
                     ),
                 });
-                for &t in &targets {
-                    let action = Action::Write(WriteOpts {
-                        input: temp.clone(),
-                        format: opts.gw_format().into(),
-                        tracks: hgf_core::gw::TrackOpts { custom: "c=0:h=0-1".into(), ..Default::default() },
-                        pre_erase: true,
-                        retries: Some(8),
-                        ..Default::default()
-                    });
-                    let geo = TrackSet { cyls: vec![0], heads: vec![0, 1] };
-                    v.extend(self.gw(action, t, format!("REWRITING TRACK 0 {}", Self::dname(t)), geo));
-                }
-                v.push(Task::Done { message: "TRACK 0 REWRITTEN AND VERIFIED.".into() });
+                let img = LastImage {
+                    path: temp,
+                    format: opts.gw_format().into(),
+                    tracks: hgf_core::gw::TrackOpts { custom: "c=0:h=0-1".into(), ..Default::default() },
+                    geo: TrackSet { cyls: vec![0], heads: vec![0, 1] },
+                    name: String::new(),
+                };
+                let job = WriteJob {
+                    img,
+                    verb: "REWRITING TRACK 0",
+                    no_verify: false,
+                    pre_erase: true,
+                    retries: Some(8),
+                    hfreq_erase: true,
+                };
+                let done = "TRACK 0 REWRITTEN AND VERIFIED.".to_string();
+                v.extend(self.write_tasks(&job, &targets, None));
+                v.push(Task::Done { message: done.clone() });
+                self.last_op = Some((OpKey::Tool(ToolMode::Track0), Redo::Write { job, done }));
                 self.launch(v);
+                self.eng.fail_hint = self.track0_hint();
             }
             ToolMode::KickDisk => self.spawn_dialog(Pick::KickRom, None),
             ToolMode::Erase => {
                 let Some(targets) = self.targets_or_notice() else { return };
                 let mut v = self.confirm_first(Self::destroy_confirm(&targets));
-                for &t in &targets {
-                    let a = Action::Erase(EraseOpts { tracks: tracks.clone(), ..Default::default() });
-                    v.extend(self.gw(a, t, format!("ERASING {}", Self::dname(t)), geo.clone()));
-                }
+                v.extend(self.erase_tasks(&tracks, &geo, &targets));
                 v.push(Task::Done { message: "ERASE DONE.".into() });
+                self.last_op = Some((OpKey::Tool(ToolMode::Erase), Redo::Erase { tracks, geo }));
                 self.launch(v);
             }
             ToolMode::Speed => {
@@ -471,38 +557,126 @@ impl App {
         }
     }
 
+    pub(super) fn erase_tasks(
+        &self,
+        tracks: &hgf_core::gw::TrackOpts,
+        geo: &TrackSet,
+        targets: &[usize],
+    ) -> Vec<Task> {
+        let mut v = Vec::new();
+        for &t in targets {
+            let a = Action::Erase(EraseOpts { tracks: tracks.clone(), ..Default::default() });
+            v.extend(self.gw(a, t, format!("ERASING {}", Self::dname(t)), geo.clone()));
+        }
+        v
+    }
+
+    /// Shown when TRACK0 fails anyway: what is left to tell a damaged disk from a drive problem.
+    pub(super) fn track0_hint(&self) -> Vec<(String, Level)> {
+        let other = match self.s.target_list().first() {
+            Some(0) if self.s.bus.drive(1).is_some() => "DF1",
+            Some(_) if self.s.bus.drive(0).is_some() => "DF0",
+            _ => "the other drive",
+        };
+        [
+            "Still failing after HF erase and 8 tries:".to_string(),
+            "- Clean the heads (TOOLS > CLEAN).".to_string(),
+            format!("- Try the disk in {other}. Fails too: track 0 is damaged (no boot, data disk only)."),
+            format!("- Works in {other}: this drive is dirty or misaligned."),
+            "- HD disk taped as DD? Use a real DD disk.".to_string(),
+            "- Stubborn old signal: use a bulk eraser.".to_string(),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(i, t)| (t, if i == 0 { Level::Warn } else { Level::Info }))
+        .collect()
+    }
+
+    /// The command selected on screen, as REPEAT sees it (`None`: nothing to replay).
+    pub(super) fn current_key(&self) -> Option<OpKey> {
+        match self.s.section {
+            Section::Copy => Some(OpKey::Copy(self.s.flow)),
+            Section::Tools => {
+                let m = self.s.tool_mode;
+                let to_file = (m.is_format() || m == ToolMode::KickDisk) && self.s.tool_adf;
+                (!to_file).then_some(OpKey::Tool(m))
+            }
+        }
+    }
+
+    /// "INSERT NEW DISK(S)" before a repeated write or erase (with the warning when SETUP asks
+    /// for confirmations).
+    fn repeat_prompt(&self, targets: &[usize], what: &str) -> Task {
+        let list: Vec<String> = targets.iter().map(|&t| Self::dname(t)).collect();
+        let warn = if self.s.confirm { " ALL DATA ON THEM WILL BE DESTROYED." } else { "" };
+        Task::Prompt {
+            title: "REPEAT".into(),
+            text: format!("INSERT NEW DISK(S) IN {}. {what}{warn}", list.join(", ")),
+        }
+    }
+
+    /// REPEAT (F2): run the last COPY / FORMAT / ERASE… again on new disks, without reading the
+    /// source again and without asking for the image file.
     pub(super) fn repeat(&mut self) {
         if self.eng.busy() || self.picking.is_some() {
             return;
         }
-        let rewrite = self.s.section == Section::Copy && self.s.flow != Flow::DiskToAdf;
-        if let (true, Some(img)) = (rewrite, self.last_image.clone()) {
-            if !img.path.exists() {
-                self.last_image = None;
-                return self.start();
+        let key = self.current_key();
+        let redo = self.last_op.as_ref().filter(|(k, _)| Some(*k) == key).map(|(_, r)| r.clone());
+        match redo {
+            Some(Redo::Write { job, done }) if job.img.path.exists() => {
+                let Some(targets) = self.targets_or_notice() else { return };
+                let what = if job.img.name.is_empty() {
+                    format!("REPEAT: {}.", job.verb)
+                } else {
+                    format!("{} WILL BE WRITTEN AGAIN.", job.img.name)
+                };
+                self.eng.push_log(format!("REPEAT: {} ON {} DISK(S).", job.verb, targets.len()), Level::Info);
+                let mut v = vec![self.repeat_prompt(&targets, &what)];
+                v.extend(self.write_tasks(&job, &targets, None));
+                v.push(Task::Done { message: done });
+                if key == Some(OpKey::Copy(Flow::AdfToDisk)) {
+                    self.image_name = Some((Flow::AdfToDisk, job.img.name.clone()));
+                }
+                let hint = if job.hfreq_erase { self.track0_hint() } else { Vec::new() };
+                self.launch(v);
+                self.eng.fail_hint = hint;
             }
-            let Some(targets) = self.targets_or_notice() else { return };
-            let list: Vec<String> = targets.iter().map(|&t| Self::dname(t)).collect();
-            let mut v = vec![Task::Prompt {
-                title: "REPEAT".into(),
-                text: format!(
-                    "INSERT NEW TARGET DISK(S) IN {}. THE SAME IMAGE WILL BE WRITTEN AGAIN.",
-                    list.join(", ")
-                ),
-            }];
-            v.extend(self.write_tasks(&img, &targets, None, false));
-            v.push(Task::Done { message: "OPERATION DONE. ONE MORE COPY.".into() });
-            self.launch(v);
-        } else {
-            let what = match self.s.section {
-                Section::Tools => format!("REPEAT: {} AGAIN.", self.s.tool_mode.label()),
-                Section::Copy if self.s.flow == Flow::DiskToAdf => "REPEAT: READ ANOTHER DISK.".to_string(),
-                Section::Copy => "REPEAT: NO COPY IN MEMORY YET, FULL COPY STARTED.".to_string(),
-            };
-            self.eng.push_log(what.clone(), Level::Info);
-            self.start();
-            if !self.eng.busy() && self.picking.is_none() && self.modal.is_none() {
-                self.eng.set_status(what, Level::Warn);
+            Some(Redo::Erase { tracks, geo }) => {
+                let Some(targets) = self.targets_or_notice() else { return };
+                self.eng.push_log(format!("REPEAT: ERASE ON {} DISK(S).", targets.len()), Level::Info);
+                let mut v = vec![self.repeat_prompt(&targets, "THEY WILL BE ERASED.")];
+                v.extend(self.erase_tasks(&tracks, &geo, &targets));
+                v.push(Task::Done { message: "ERASE DONE.".into() });
+                self.launch(v);
+            }
+            Some(Redo::ReadTo { dir, ext }) => {
+                if !self.source_ok() {
+                    return;
+                }
+                let folder = dir.as_deref().map(|d| d.display().to_string()).unwrap_or_default();
+                self.eng.push_log(
+                    format!("REPEAT: READ THE NEXT DISK, SAVED AS <VOLUME NAME>.{ext} IN {folder}"),
+                    Level::Info,
+                );
+                // the volume name probe then saves without the requester
+                self.auto_save = Some(dir);
+                self.start_copy();
+            }
+            _ => {
+                let what = match self.s.section {
+                    Section::Tools => format!("REPEAT: {} AGAIN.", self.s.tool_mode.label()),
+                    Section::Copy => match self.s.flow {
+                        Flow::DiskToAdf => "REPEAT: READ ANOTHER DISK.".to_string(),
+                        Flow::AdfToDisk => "REPEAT: NO IMAGE WRITTEN YET, CHOOSE ONE.".to_string(),
+                        Flow::DiskToDisk => "REPEAT: NO COPY IN MEMORY YET, FULL COPY STARTED.".to_string(),
+                    },
+                };
+                self.eng.push_log(what.clone(), Level::Info);
+                self.start();
+                if !self.eng.busy() && self.picking.is_none() && self.modal.is_none() {
+                    self.eng.set_status(what, Level::Warn);
+                }
             }
         }
     }
@@ -631,14 +805,26 @@ impl App {
             ..Default::default()
         };
         let geo = TrackSet::dense(kickstart::KICK_CYLINDERS, 2);
-        for &t in &targets {
-            let mut task = self.write_task(&temp, "amiga.amigados", tracks.clone(), false, t, geo.clone());
-            if let Some(Task::Gw { label, .. }) = &mut task {
-                *label = format!("WRITING KICKSTART {}", Self::dname(t));
-            }
-            v.extend(task);
-        }
-        v.push(Task::Done { message: format!("KICKSTART DISK READY: {what}.") });
+        let img = LastImage {
+            path: temp,
+            format: "amiga.amigados".into(),
+            tracks,
+            geo,
+            name: short_name(&rom_path, 16),
+        };
+        let job = WriteJob {
+            img,
+            verb: "WRITING KICKSTART",
+            no_verify: false,
+            pre_erase: false,
+            retries: None,
+            hfreq_erase: false,
+        };
+        let done = format!("KICKSTART DISK READY: {what}.");
+        v.extend(self.write_tasks(&job, &targets, None));
+        v.push(Task::Done { message: done.clone() });
+        // REPEAT writes more Kickstart disks without asking for the ROM again.
+        self.last_op = Some((OpKey::Tool(ToolMode::KickDisk), Redo::Write { job, done }));
         self.launch(v);
     }
 }

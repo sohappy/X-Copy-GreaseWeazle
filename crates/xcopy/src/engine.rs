@@ -127,6 +127,11 @@ pub struct Engine {
     pub sound: Option<Sound>,
     /// Result of a [`Task::NameProbe`]: `Some(name)` once probed (`None` inside = no name).
     pub probe_name: Option<Option<String>>,
+    /// The next gw command re-reads some tracks: keep the current map (and its geometry)
+    /// instead of starting a new one. Reset once used.
+    pub keep_map: bool,
+    /// Extra advice shown if the operation fails (set right after `start`).
+    pub fail_hint: Vec<(String, Level)>,
     pending_yes: Vec<Task>,
 }
 
@@ -159,6 +164,8 @@ impl Engine {
             done_count: 0,
             sound: None,
             probe_name: None,
+            keep_map: false,
+            fail_hint: Vec::new(),
             pending_yes: Vec::new(),
         }
     }
@@ -196,6 +203,7 @@ impl Engine {
             return;
         }
         self.cfg = cfg;
+        self.fail_hint.clear();
         self.queue = tasks.into();
         self.started = Some(Instant::now());
         self.elapsed = Duration::ZERO;
@@ -253,7 +261,12 @@ impl Engine {
     fn fail(&mut self, kind: Option<ActionKind>, message: String) {
         self.queue.clear();
         let mut lines = vec![(message.clone(), Level::Error)];
-        if let Some(h) = kind.and_then(|k| hints::for_failure(k, &message)) {
+        let specific = std::mem::take(&mut self.fail_hint);
+        if !specific.is_empty() {
+            // The operation knows better than the generic advice.
+            lines.push((String::new(), Level::Info));
+            lines.extend(specific);
+        } else if let Some(h) = kind.and_then(|k| hints::for_failure(k, &message)) {
             lines.push((String::new(), Level::Info));
             lines.push((h.title.clone(), Level::Warn));
             for s in &h.steps {
@@ -305,7 +318,7 @@ impl Engine {
                 let kind = action.kind();
                 let args = action.args(&self.cfg, drive);
                 self.push_log(format!("$ {}", action.command_line(&self.cfg, drive)), Level::Cmd);
-                if kind.uses_disk_map() {
+                if kind.uses_disk_map() && !std::mem::take(&mut self.keep_map) {
                     let mode = match kind {
                         ActionKind::Write => MapMode::Write,
                         ActionKind::Erase => MapMode::Erase,

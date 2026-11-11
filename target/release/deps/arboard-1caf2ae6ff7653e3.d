@@ -1,0 +1,10 @@
+/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/deps/arboard-1caf2ae6ff7653e3.d: /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/lib.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/common.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/mod.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/osx.rs
+
+/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/deps/libarboard-1caf2ae6ff7653e3.rlib: /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/lib.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/common.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/mod.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/osx.rs
+
+/Users/oliviersoros/Documents/CODING/RUST/X-COPY/xcopy-modern/target/release/deps/libarboard-1caf2ae6ff7653e3.rmeta: /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/lib.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/common.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/mod.rs /Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/osx.rs
+
+/Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/lib.rs:
+/Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/common.rs:
+/Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/mod.rs:
+/Users/oliviersoros/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.6.1/src/platform/osx.rs:

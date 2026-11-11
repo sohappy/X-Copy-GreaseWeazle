@@ -121,6 +121,11 @@ impl DiskMap {
         self.tracks.get(&(cyl, head)).cloned().unwrap_or_default()
     }
 
+    /// Replace what is known of a track (e.g. after merging several reads of it).
+    pub fn set(&mut self, cyl: u16, head: u8, info: TrackInfo) {
+        *self.entry(cyl, head) = info;
+    }
+
     fn entry(&mut self, cyl: u16, head: u8) -> &mut TrackInfo {
         if !self.geometry.cyls.contains(&cyl) {
             let pos = self.geometry.cyls.partition_point(|&c| c < cyl);
@@ -255,6 +260,11 @@ impl DiskMap {
     /// again too; their state is simply refreshed.
     pub fn start_reread(&mut self) -> Option<String> {
         let bad = self.bad_tracks();
+        self.start_reread_of(&bad)
+    }
+
+    /// Like [`start_reread`](Self::start_reread), for a chosen list of tracks.
+    pub fn start_reread_of(&mut self, bad: &[(u16, u8)]) -> Option<String> {
         if bad.is_empty() {
             return None;
         }
@@ -264,7 +274,7 @@ impl DiskMap {
         cyls.dedup();
         heads.sort_unstable();
         heads.dedup();
-        for &(c, h) in &bad {
+        for &(c, h) in bad {
             self.tracks.insert((c, h), TrackInfo::default());
         }
         self.mode = MapMode::Read;

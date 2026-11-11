@@ -49,7 +49,7 @@
 | `DOSCOPY` | AmigaDOS sector copy (ADF), with verified writes. |
 | `DOSCOPY+` | Like DOSCOPY, with the recovery profile (5 revolutions, 8 retries, 2 head re-seeks) for damaged disks. |
 | `BAMCOPY` | Reads cylinder 40 first (root block and bitmap), then **only the cylinders that hold files**. Much faster on a sparsely filled disk. The target disk is written in full, free tracks blank. If the bitmap is invalid, the whole disk is read. |
-| `NIBBLE` | Copy at the magnetic flux level (SCP): keeps copy protections. DEVICE then reads `DF>SCP` / `SCP>DF` (SCP or IPF files). |
+| `NIBBLE` | Copy at the magnetic flux level (SCP): keeps copy protections. With START-END on the whole disk it reads cylinders 0-83, where some protections hide data. DEVICE then reads `DF>SCP` / `SCP>DF` (SCP or IPF files). |
 
 **DEVICE** sets the copy direction:
 
@@ -65,7 +65,7 @@
 |---|---|
 | `FORMAT` | Blank AmigaDOS disk (OFS/FFS, DD/HD, volume name), written and verified. With DEVICE = `ADF`, saves a blank image instead. |
 | `QFORMAT` | Quick format: every track is written, but without the verify pass. |
-| `TRACK0` | Erases and rewrites **track 0 only** (blank boot block), with 8 verify retries. The rest of the disk is untouched; the disk no longer boots but its files stay readable. |
+| `TRACK0` | Rewrites **track 0 only** (blank boot block): high-frequency erase first (`gw erase --hfreq`, removes stubborn old signals), then a write with pre-erase and 8 verify retries. If it still fails, a requester tells a damaged disk from a dirty or misaligned drive. The rest of the disk is untouched; the disk no longer boots but its files stay readable. |
 | `ERASE` | Erases the selected track range. |
 | `SPEEDCHK` | Measures the source drive speed (RPM and deviation from 300). |
 | `CLEAN` | Head cleaning with a cleaning disk. |
@@ -76,7 +76,7 @@
 | Button | Key | What it does |
 |---|---|---|
 | **START** | Enter | Starts the operation. You are asked to confirm before a disk is overwritten. |
-| **REPEAT** | F2 | Writes the last copied image again to new disks, without reading the source again. Handy for a series of copies. In TOOLS, repeats the selected tool (another FORMAT, ERASE…). |
+| **REPEAT** | F2 | Runs the last command again on new disks, without asking for the file again: DF>DF and ADF>DF write the same image (no new read, no file requester), DF>ADF reads the next disk and saves it next to the previous one under its volume name (`NAME.adf`, `NAME_2.adf`…), FORMAT / ERASE / TRACK0 / KICKDISK start again with the same settings. The image file in use is shown above the drives and in the status line. |
 | **STOP** | Esc | Stops cleanly; the drive is released. |
 | **GW INFO** | | Greaseweazle model, firmware, port and USB link. |
 | **DIRECTORY** | | Volume, filesystem, boot block status and file list of the source disk or of an ADF. |
@@ -159,7 +159,27 @@ Click **SETUP** (top right) and paste the full path of `gw` into *GW PROGRAM*, o
 **DETECT**: it finds `gw` and asks it which Greaseweazle is connected and on which serial port
 (the same search runs at startup; the model shows in the top-right panel). The **PORT** line cycles
 through the serial ports found (empty = automatic). **CONFIRM BEFORE WRITING** turns off the
-"ALL DATA … WILL BE DESTROYED" question, as on the original X-COPY. You can also start the program with the `XCOPY_GW` variable:
+"ALL DATA … WILL BE DESTROYED" question, as on the original X-COPY.
+
+Three options concern the quality of the copies:
+
+* **RE-READ BAD TRACKS (3 PASSES)** (ON by default): after a DOSCOPY, DOSCOPY+ or BAMCOPY read, only the tracks with
+  missing sectors are read again with the recovery profile (5 revolutions, head re-seeks), up to
+  3 passes. After each pass, every sector read correctly is merged into the image: a track is
+  complete as soon as each of its sectors has been read once, even if no single pass read it all.
+  Recovered tracks show **R** in the grid. Disks with many tracks holding no AmigaDOS sector at
+  all (game formats, protections) are not re-read: copy them with NIBBLE.
+* **WRITE PRECOMP (140NS FROM CYL 40)** (OFF by default, so that X-COPY writes exactly like `gw`
+  and other front-ends): write precompensation of the Amiga's trackdisk.device
+  (`gw write --precomp 40=140`) on DD disks. Try it if inner tracks of your copies read badly on
+  the Amiga. Not applied to HD disks nor to flux (SCP) writes.
+* **KEEP FLUX OF EACH PASS (SCP)** (OFF by default): each pass of a DOSCOPY / DOSCOPY+ read (the
+  main read and every re-read) is read as raw flux into `Read passes/<name> pass N.scp`, beside
+  the ADF (in the last folder used for a DF>DF copy), then decoded into the image with
+  `gw convert`. Keeps everything needed to analyse a difficult disk later (HxC, `gw convert`
+  with other options...).
+
+You can also start the program with the `XCOPY_GW` variable:
 
 ```bash
 XCOPY_GW=$(which gw) ./xcopy-modern
@@ -227,6 +247,18 @@ FFS for 2.0 and later) and DENS, then **START**.
 
 **Is a disk dead?** FORMAT (not QFORMAT), then CHECKDISK. All green `O`: good. A few `R`: worn.
 Red cells: dead on those tracks. Test a known-good disk first, to rule out the drive.
+
+### Another Greaseweazle program copies better?
+
+With the same `gw` version, every program decodes the disk the same way: a difference comes from
+the options used, or from what was compared. The usual cases (here against Ferriteweazle):
+
+| Situation | Probable cause | Fix in X-COPY |
+|---|---|---|
+| Copy-protected game that Ferriteweazle copies but X-COPY doesn't | You probably used its "flux" preset (raw SCP, 84 cylinders): it copies the raw magnetic signal, protections included. DOSCOPY only copies AmigaDOS sectors. | Use **NIBBLE** (DF>SCP or DF>DF) |
+| Damaged disk: fewer bad tracks with Ferriteweazle | "Read passes" was set above 1 there; X-COPY did a single read before v4 | Done: re-read + merge by default, with more aggressive settings. **KEEP FLUX OF EACH PASS** keeps each pass's flux, like its "Each pass" |
+| Writing: disks written by Ferriteweazle read better on Amiga | Different write options: Ferriteweazle uses gw's defaults, X-COPY v4/v5 forced precompensation `40=140` | Done: precompensation is OFF by default, X-COPY writes like gw |
+| Cylinders 80-83 | Its flux preset reads up to cylinder 83 (some protections use them) | Done: NIBBLE reads (and DF>DF writes) cylinders 0-83 when START-END is the whole disk |
 
 ## Building from source
 

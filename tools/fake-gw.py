@@ -42,6 +42,13 @@ if cmd == 'read':
         if part.startswith('c='): cyls = parse_set(part[2:])
         if part.startswith('h='): heads = parse_set(part[2:])
     retries = int(a[a.index('--retries') + 1]) if '--retries' in a else 3
+    revs = int(a[a.index('--revs') + 1]) if '--revs' in a else 0
+    # FAKE_STATE: counts the recovery reads, so that 18.1 loses different sectors each time.
+    state = os.environ.get('FAKE_STATE', '/tmp/fake-gw-passes')
+    npass = 0
+    if revs >= 5:
+        npass = (int(open(state).read()) if os.path.exists(state) else 0) + 1
+        open(state, 'w').write(str(npass))
     print("Reading c=%s:h=%s revs=3\nFormat amiga.amigados" % (spec.split(':')[0][2:] if spec.startswith('c=') else '0-79', '0-1' if heads == [0, 1] else heads[0]))
     random.seed(4); stop = int(os.environ.get('FAKE_STOP', '160'))
     n = 0; summary = {}
@@ -51,10 +58,16 @@ if cmd == 'read':
             if n > stop: time.sleep(3600)
             t = "T%d.%d" % (c, h)
             bad = (c in (17, 18) and h == 1) or (c == 44 and h == 0)
-            # Harder retries (Recovery profile) bring back two of the three bad tracks.
-            recovered = bad and retries >= 8 and (c, h) != (18, 1)
+            # The recovery profile (5 revs) brings back 17.1 and 44.0. 18.1 never reads in full,
+            # but it misses different sectors on each recovery pass (sector merge).
+            recovered = bad and revs >= 5 and (c, h) != (18, 1)
             weak = random.random() < 0.05
-            if bad and not recovered:
+            if bad and revs >= 5 and (c, h) == (18, 1):
+                lost = {(npass * 3 + j) % 11 for j in range(3)}
+                print("%s: AmigaDOS (8/11 sectors) from Raw Flux (100000 flux in 600.00ms)" % t)
+                print("%s: Giving up: 3 sectors missing" % t)
+                summary[(c,h)] = [0 if x in lost else 1 for x in range(11)]
+            elif bad and not recovered:
                 for r in range(1, min(retries, 3) + 2):
                     print("%s: AmigaDOS (%d/11 sectors) from Raw Flux (100000 flux in 600.00ms)%s" % (t, 8, "" if r == 1 else " (Retry #0.%d)" % (r-1)))
                 print("%s: Giving up: 3 sectors missing" % t); summary[(c,h)] = [1,1,1,1,0,0,0,1,1,1,1]
@@ -77,12 +90,17 @@ if cmd == 'read':
     out = a[-1]  # like gw, create the image (an ADF has a fixed size)
     if not os.path.exists(out) or '--no-clobber' not in a:
         src = os.environ.get('FAKE_ADF')
-        if src and out.lower().endswith('.adf'):
+        # With --format, a raw .scp holds (here) the sectors as read, so that a fake
+        # `convert` can decode them back with the same missing sectors.
+        if src and (out.lower().endswith('.adf') or ('--raw' in a and '--format' in a)):
             # FAKE_ADF: the disk in the drive. Tracks not read stay blank, like gw.
             data = open(src, 'rb').read(); img = bytearray(len(data))
             for c in cyls:
                 for h in heads:
                     o = (c * 2 + h) * 11 * 512; img[o:o + 5632] = data[o:o + 5632]
+                    for x, v in enumerate(summary[(c, h)]):
+                        if not v:  # missing sector: left blank
+                            img[o + x * 512:o + x * 512 + 512] = bytes(512)
             open(out, 'wb').write(bytes(img))
         else:
             open(out, 'wb').write(bytes(901120 if out.lower().endswith('.adf') else 4096))
@@ -145,5 +163,36 @@ if cmd == 'clean':
 if cmd == 'update':
     print("** SKIPPING UPDATE:\nDevice is already running version 1.6.\nUse --force to update anyway."); sys.exit(0)
 if cmd == 'convert':
-    import os; os.execvp('gw', ['gw'] + a)
+    import os
+    src, out = a[-2], a[-1]
+    if not src.lower().endswith('.scp') or not out.lower().endswith('.adf'):
+        os.execvp('gw', ['gw'] + a)
+    data = open(src, 'rb').read()
+    spec = a[a.index('--tracks') + 1] if '--tracks' in a else 'c=0-79:h=0-1'
+    cyls, heads = list(range(80)), [0, 1]
+    for part in spec.split(':'):
+        if part.startswith('c='): cyls = parse_set(part[2:])
+        if part.startswith('h='): heads = parse_set(part[2:])
+    print("Converting c=%s:h=%s" % (spec.split(':')[0][2:], '0-1' if heads == [0, 1] else heads[0]))
+    img = bytearray(901120); summary = {}
+    for c in cyls:
+        for h in heads:
+            o = (c * 2 + h) * 11 * 512
+            chunk = data[o:o + 5632]
+            # an all-zero sector was missing in the read (the test images are random data)
+            ok = [0 if len(chunk) < (x + 1) * 512 or chunk[x*512:(x+1)*512] == bytes(512) else 1 for x in range(11)]
+            summary[(c, h)] = ok
+            img[o:o + len(chunk)] = chunk
+            print("T%d.%d: AmigaDOS (%d/11 sectors) from Raw Flux (100000 flux in 600.00ms)" % (c, h, sum(ok)))
+    print("Cyl-> " + "".join(str(c//10) if (i == 0 or c % 10 == 0) else " " for i, c in enumerate(cyls)))
+    print("H. S: " + "".join(str(c%10) for c in cyls))
+    good = tot = 0
+    for h in heads:
+        for sct in range(11):
+            row = ""
+            for c in cyls:
+                v = summary[(c,h)][sct]; tot += 1; good += v; row += "." if v else "X"
+            print("%d.%2d: %s" % (h, sct, row))
+    print("Found %d sectors of %d (%d%%)" % (good, tot, good*100/tot))
+    open(out, 'wb').write(bytes(img)); sys.exit(0)
 print("Command Failed: fake gw does not implement %s" % cmd); sys.exit(0)
